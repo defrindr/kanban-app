@@ -6,39 +6,27 @@ import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/features/auth/stores/auth-store'
 import { useDarkMode } from '@/shared/hooks/use-dark-mode'
 import { fetchMyTasks, fetchBoards, moveCard } from '@/features/kanban/api/mock-api'
+import {
+  LABEL_COLOR_CLASSES,
+  STATUS_CONFIG,
+  STATUS_ICONS,
+  OVERDUE_INDICATOR_CONFIG,
+  DUE_DATE_WARNING_THRESHOLD,
+  isOverdue,
+  getDaysUntilDue,
+} from '@/lib/constants'
 import { CalendarView } from './components/calendar-view'
 import { TimelineView } from './components/timeline-view'
 import type { Card, Board } from '@/features/kanban/types/kanban'
-
-const labelColorMap: Record<string, string> = {
-  blue: 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400',
-  red: 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400',
-  purple: 'bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400',
-  green: 'bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400',
-  orange: 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400',
-  gray: 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400',
-}
+import type { Label } from '@/features/kanban/types/kanban'
 
 function normalizeListName(name: string): string {
   return name.toLowerCase().replace(/\s+/g, ' ')
 }
 
-function getStatusIcon(status: string) {
-  switch (status) {
-    case 'to do':
-      return 'M9 12l2 2 4-4'
-    case 'in progress':
-      return 'M13 10V3L4 14h7v7l9-11h-7z'
-    case 'done':
-      return 'M5 13l4 4L19 7'
-    default:
-      return 'M5 13l4 4L19 7'
-  }
-}
-
 function ProgressChart({ completed, total }: { completed: number; total: number }) {
   const percentage = total === 0 ? 0 : Math.round((completed / total) * 100)
-  
+
   return (
     <div className="flex items-center gap-3">
       <div className="flex-1">
@@ -54,7 +42,9 @@ function ProgressChart({ completed, total }: { completed: number; total: number 
         </div>
       </div>
       <div className="text-right">
-        <div className="text-sm font-semibold text-gray-900 dark:text-white">{completed}/{total}</div>
+        <div className="text-sm font-semibold text-gray-900 dark:text-white">
+          {completed}/{total}
+        </div>
         <div className="text-xs text-gray-500 dark:text-gray-400">completed</div>
       </div>
     </div>
@@ -62,14 +52,8 @@ function ProgressChart({ completed, total }: { completed: number; total: number 
 }
 
 function StatusBadge({ status }: { status: string }) {
-  const statusConfig: Record<string, { bg: string; text: string; icon: string }> = {
-    'to do': { bg: 'bg-gray-100 dark:bg-gray-800', text: 'text-gray-700 dark:text-gray-300', icon: '◯' },
-    'in progress': { bg: 'bg-blue-100 dark:bg-blue-900/30', text: 'text-blue-700 dark:text-blue-300', icon: '◐' },
-    'done': { bg: 'bg-green-100 dark:bg-green-900/30', text: 'text-green-700 dark:text-green-300', icon: '✓' },
-  }
-  
-  const config = statusConfig[status] || statusConfig['to do']
-  
+  const config = STATUS_CONFIG[status as keyof typeof STATUS_CONFIG] || STATUS_CONFIG['to do']
+
   return (
     <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium ${config.bg} ${config.text}`}>
       <span>{config.icon}</span>
@@ -80,34 +64,41 @@ function StatusBadge({ status }: { status: string }) {
 
 function OverdueIndicator({ dueDate }: { dueDate?: string }) {
   if (!dueDate) return null
-  
+
   const due = new Date(dueDate)
-  const now = new Date()
-  const isOverdue = due < now
-  const daysLeft = Math.ceil((due.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
-  
-  if (isOverdue) {
+  const daysLeft = getDaysUntilDue(due)
+  const isOverdueDate = isOverdue(due)
+
+  if (isOverdueDate) {
     return (
-      <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 text-xs font-medium">
+      <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg ${OVERDUE_INDICATOR_CONFIG.bg} ${OVERDUE_INDICATOR_CONFIG.text} text-xs font-medium`}>
         <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
-          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+          <path
+            fillRule="evenodd"
+            d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+            clipRule="evenodd"
+          />
         </svg>
-        Overdue
+        {OVERDUE_INDICATOR_CONFIG.label}
       </div>
     )
   }
-  
-  if (daysLeft <= 3) {
+
+  if (daysLeft <= DUE_DATE_WARNING_THRESHOLD) {
     return (
       <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-400 text-xs font-medium">
         <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
-          <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+          <path
+            fillRule="evenodd"
+            d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+            clipRule="evenodd"
+          />
         </svg>
         Due in {daysLeft}d
       </div>
     )
   }
-  
+
   return null
 }
 
@@ -580,7 +571,12 @@ export default function MyTasksPage() {
                                     {c.labels.length > 0 && (
                                       <div className="flex flex-wrap gap-1.5 mb-2">
                                         {c.labels.map((l) => (
-                                          <span key={l.id} className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${labelColorMap[l.color] || labelColorMap.gray}`}>
+                                          <span
+                                            key={l.id}
+                                            className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${
+                                              LABEL_COLOR_CLASSES[l.color as Label['color']] || LABEL_COLOR_CLASSES.gray
+                                            }`}
+                                          >
                                             {l.name}
                                           </span>
                                         ))}
