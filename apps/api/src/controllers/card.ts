@@ -49,7 +49,7 @@ router.get(
       { description: { contains: q, mode: 'insensitive' } },
     ];
     if (listId) where.listId = listId;
-    if (assigneeId) where.assignees = { has: assigneeId };
+    if (assigneeId) where.cardAssignees = { some: { userId: assigneeId } };
     if (archived !== undefined) where.archived = archived;
     if (labels) where.labels = { hasSome: labels.split(',') };
     if (dueBefore || dueAfter) {

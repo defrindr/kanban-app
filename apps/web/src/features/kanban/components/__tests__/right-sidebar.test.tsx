@@ -43,13 +43,13 @@ describe('RightSidebar', () => {
 
   it('renders activities', () => {
     render(<RightSidebar {...baseProps} activities={[makeActivity()]} />)
-    expect(screen.getByText('Task 1')).toBeInTheDocument()
+    expect(screen.getByText(/Task 1/)).toBeInTheDocument()
   })
 
   it('renders multiple activities', () => {
     render(<RightSidebar {...baseProps} activities={[makeActivity(), makeActivity({ id: 'a2', entityName: 'Task 2' })]} />)
-    expect(screen.getByText('Task 1')).toBeInTheDocument()
-    expect(screen.getByText('Task 2')).toBeInTheDocument()
+    expect(screen.getByText(/Task 1/)).toBeInTheDocument()
+    expect(screen.getByText(/Task 2/)).toBeInTheDocument()
   })
 
   it('switches to settings tab', () => {

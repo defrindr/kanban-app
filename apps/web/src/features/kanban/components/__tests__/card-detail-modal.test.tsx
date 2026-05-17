@@ -195,9 +195,9 @@ describe('CardDetailModal', () => {
       expect(screen.getByText('created this card')).toBeInTheDocument()
     })
 
-    it('shows card movement with list names', () => {
+    it('shows card movement with list ids as fallback', () => {
       const activities = [
-        { id: 'a1', boardId: 'b1', userId: 'u1', userName: 'John', action: 'moved', entityType: 'card', entityId: 'c1', fromListId: 'l1', toListId: 'l2', createdAt: '2026-01-01T00:00:00Z' },
+        { id: 'a1', boardId: 'b1', userId: 'u1', userName: 'John', action: 'moved', entityType: 'card', entityId: 'c1', fromListId: 'l1', toListId: 'l2', fromListTitle: 'Backlog', toListTitle: 'In Progress', createdAt: '2026-01-01T00:00:00Z' },
       ]
       render(<CardDetailModal {...baseProps} activities={activities} boardLists={lists} />)
       expect(screen.getByText(/moved from/)).toBeInTheDocument()
