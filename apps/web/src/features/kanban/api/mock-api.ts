@@ -47,6 +47,8 @@ function transformCard(c: any): Card {
     archived: c.archived || false,
     createdAt: c.createdAt,
     updatedAt: c.updatedAt,
+    listName: c.list?.title,
+    boardId: c.list?.boardId,
   }
 }
 
@@ -343,12 +345,14 @@ export async function fetchActivities(boardId: string): Promise<{ ok: true; data
 
 export async function fetchMyTasks(assigneeId: string): Promise<{ ok: true; data: Card[] }> {
   const res = await apiClient<any[]>(`/api/cards/search?assigneeId=${assigneeId}&limit=100`)
-  return { ok: true, data: (res.data || []).map(transformCard) }
+  if (!res.ok) return { ok: true, data: [] }
+  return { ok: true, data: res.data.map(transformCard) }
 }
 
 export async function fetchNotifications(): Promise<{ ok: true; data: Notification[] }> {
   const res = await apiClient<Notification[]>('/api/notifications')
-  return { ok: true, data: res.data || [] }
+  if (!res.ok) return { ok: true, data: [] }
+  return { ok: true, data: res.data }
 }
 
 export async function markNotificationRead(notificationId: string): Promise<void> {

@@ -54,6 +54,8 @@ export const CardSchema = z.object({
   archived: z.boolean().optional(),
   createdAt: z.string(),
   updatedAt: z.string(),
+  listName: z.string().optional(),
+  boardId: z.string().optional(),
 })
 
 export const ListSchema = z.object({
