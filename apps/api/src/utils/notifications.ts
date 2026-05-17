@@ -7,3 +7,7 @@ export function notifyBoard(boardId: string, event: string, data: unknown, actor
     notifyWebhooks(boardId, event, actor, data as Record<string, unknown>);
   }
 }
+
+export function notifyUser(userId: string, event: string, data: unknown) {
+  io.to(`user:${userId}`).emit(event, data);
+}

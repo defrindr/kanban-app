@@ -89,7 +89,7 @@ export const BoardSearchSchema = PaginationSchema.extend({
 });
 
 export const CardSearchSchema = z.object({
-  boardId: CuidSchema,
+  boardId: CuidSchema.optional(),
   q: z.string().optional(),
   listId: CuidSchema.optional(),
   labels: z.string().optional(),

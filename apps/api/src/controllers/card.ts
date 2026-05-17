@@ -33,7 +33,7 @@ router.get(
       boardId, q, listId, labels, assigneeId,
       archived, dueBefore, dueAfter, page, limit,
     } = req.query as unknown as {
-      boardId: string; q?: string; listId?: string; labels?: string;
+      boardId?: string; q?: string; listId?: string; labels?: string;
       assigneeId?: string; archived?: boolean;
       dueBefore?: string; dueAfter?: string;
       page: number; limit: number;
@@ -41,9 +41,8 @@ router.get(
 
     const skip = (page - 1) * limit;
 
-    const where: Record<string, unknown> = {
-      list: { boardId },
-    };
+    const where: Record<string, unknown> = {};
+    if (boardId) where.list = { boardId };
 
     if (q) where.OR = [
       { title: { contains: q, mode: 'insensitive' } },
@@ -151,6 +150,7 @@ router.put(
       action: 'UPDATE',
       entityType: 'CARD',
       entityId: id,
+      metadata: { entityName: card.title },
     });
 
     notifyBoard(boardId, 'card:updated', card, req.user);
@@ -178,13 +178,25 @@ router.post(
       include: { comments: { include: { user: { select: { id: true, name: true, avatar: true } } } }, cardLabels: true, cardAssignees: { include: { user: { select: { id: true, email: true, name: true, avatar: true } } } } },
     });
 
+    const [fromList, toList] = await Promise.all([
+      prisma.list.findUnique({ where: { id: fromListId }, select: { title: true } }),
+      prisma.list.findUnique({ where: { id: toListId }, select: { title: true } }),
+    ]);
+
     await logActivity({
       boardId,
       userId: req.user!.userId,
       action: 'MOVE',
       entityType: 'CARD',
       entityId: cardId,
-      metadata: { toListId, newPosition },
+      metadata: {
+        entityName: card.title,
+        fromListId,
+        toListId,
+        fromListTitle: fromList?.title,
+        toListTitle: toList?.title,
+        newPosition,
+      },
     });
 
     notifyBoard(boardId, 'card:moved', { card, fromListId, toListId, newPosition }, req.user);
@@ -205,12 +217,15 @@ router.delete(
       });
     }
 
+    const card = await prisma.card.findUnique({ where: { id }, select: { title: true } });
+
     await logActivity({
       boardId,
       userId: req.user!.userId,
       action: 'DELETE',
       entityType: 'CARD',
       entityId: id,
+      metadata: { entityName: card?.title },
     });
 
     await prisma.card.delete({ where: { id } });

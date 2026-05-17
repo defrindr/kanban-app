@@ -4,7 +4,8 @@ import { validateBody, validateQuery } from '../middleware/validate.js';
 import { authGuard } from '../middleware/auth.js';
 import { asyncHandler } from '../middleware/error-handler.js';
 import { CreateCommentSchema, UpdateCommentSchema, PaginationSchema } from '../utils/validation.js';
-import { notifyBoard } from '../utils/notifications.js';
+import { notifyBoard, notifyUser } from '../utils/notifications.js';
+import { addNotification } from '../utils/notification-store.js';
 import { logActivity } from '../utils/activity.js';
 import { sendEmail, commentNotificationEmail } from '../utils/email.js';
 
@@ -72,15 +73,24 @@ router.post(
       action: 'CREATE',
       entityType: 'COMMENT',
       entityId: comment.id,
+      metadata: { entityName: card.title, content: content.slice(0, 100) },
     });
 
     notifyBoard(card.list.boardId, 'comment:created', comment, req.user);
 
     const [cardInfo, assignees] = await Promise.all([
       prisma.card.findUnique({ where: { id: cardId }, select: { title: true, list: { select: { board: { select: { name: true } } } } } }),
-      prisma.cardAssignee.findMany({ where: { cardId }, include: { user: { select: { email: true } } } }),
+      prisma.cardAssignee.findMany({ where: { cardId }, include: { user: { select: { email: true, id: true } } } }),
     ]);
     if (cardInfo) {
+      const commenter = req.user!.email.split('@')[0];
+      assignees
+        .filter(a => a.userId !== req.user!.userId)
+        .forEach(a => {
+          const msg = `${commenter} commented on "${cardInfo.title}"`;
+          const notif = addNotification(a.userId, { userId: a.userId, type: 'comment', message: msg, read: false });
+          notifyUser(a.userId, 'notification:new', notif);
+        });
       const emails = assignees
         .map(a => a.user.email)
         .filter(e => e !== req.user!.email);
@@ -130,6 +140,7 @@ router.put(
       action: 'UPDATE',
       entityType: 'COMMENT',
       entityId: id,
+      metadata: { content: updated.content.slice(0, 100) },
     });
 
     notifyBoard(comment.card.list.boardId, 'comment:updated', updated, req.user);
@@ -165,6 +176,7 @@ router.delete(
       action: 'DELETE',
       entityType: 'COMMENT',
       entityId: id,
+      metadata: { content: comment.content.slice(0, 100) },
     });
 
     await prisma.comment.delete({ where: { id } });

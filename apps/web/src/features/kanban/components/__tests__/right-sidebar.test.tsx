@@ -33,7 +33,7 @@ const baseProps = {
 describe('RightSidebar', () => {
   it('renders activity tab by default', () => {
     render(<RightSidebar {...baseProps} />)
-    expect(screen.getByText('Recent Activity')).toBeInTheDocument()
+    expect(screen.getByText('Activity')).toBeInTheDocument()
   })
 
   it('shows empty activity state', () => {

@@ -204,6 +204,7 @@ router.post(
       action: 'CREATE',
       entityType: 'BOARD',
       entityId: board.id,
+      metadata: { entityName: board.name },
     });
 
     notifyBoard(board.id, 'board:created', board, req.user);
@@ -233,6 +234,7 @@ router.put(
       action: 'UPDATE',
       entityType: 'BOARD',
       entityId: id,
+      metadata: { entityName: board.name },
     });
 
     notifyBoard(id, 'board:updated', board, req.user);
@@ -245,12 +247,15 @@ router.delete(
   asyncHandler(async (req, res) => {
     const { id } = req.params;
 
+    const board = await prisma.board.findUnique({ where: { id }, select: { name: true } });
+
     await logActivity({
       boardId: id,
       userId: req.user!.userId,
       action: 'DELETE',
       entityType: 'BOARD',
       entityId: id,
+      metadata: { entityName: board?.name },
     });
 
     await prisma.board.delete({ where: { id } });

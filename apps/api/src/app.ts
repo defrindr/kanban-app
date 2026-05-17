@@ -24,6 +24,7 @@ import memberRoutes from './controllers/member.js';
 import authRoutes from './controllers/auth.js';
 import adminRoutes from './controllers/admin.js';
 import webhookRoutes from './controllers/webhook.js';
+import notificationRoutes from './controllers/notification.js';
 import { swaggerServe, swaggerSetup } from './swagger.js';
 import { UPLOAD_DIR } from './middleware/upload.js';
 import { existsSync } from 'fs';
@@ -117,6 +118,7 @@ function mount(prefix: string) {
   app.use(pw('/comments'), apiLimiter, mutationGuard, commentRoutes);
   app.use(p('/boards/:boardId/members'), ...middlewares, memberRoutes);
   app.use(p('/boards/:boardId/webhooks'), apiLimiter, authGuard, webhookRoutes);
+  app.use(p('/notifications'), apiLimiter, authGuard, notificationRoutes);
   app.use(p('/admin'), apiLimiter, authGuard, adminRoutes);
 }
 

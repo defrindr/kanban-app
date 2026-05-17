@@ -88,6 +88,9 @@ export const ActivitySchema = z.object({
   entityName: z.string().optional(),
   fromListId: z.string().optional(),
   toListId: z.string().optional(),
+  fromListTitle: z.string().optional(),
+  toListTitle: z.string().optional(),
+  content: z.string().optional(),
   createdAt: z.string(),
 })
 

@@ -272,7 +272,8 @@ describe('mock-api', () => {
       if (result.ok) expect(result.data).toEqual([])
     })
 
-    it('fetchNotifications returns empty', async () => {
+    it('fetchNotifications returns notifications from api', async () => {
+      mockApiClient.mockResolvedValueOnce({ ok: true, data: [] })
       const result = await fetchNotifications()
       expect(result.ok).toBe(true)
       if (result.ok) expect(result.data).toEqual([])

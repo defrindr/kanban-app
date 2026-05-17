@@ -25,6 +25,7 @@ function guarded(socket: Socket, event: string, fn: (...args: unknown[]) => Prom
 export function registerSocketHandlers(io: Server) {
   io.on('connection', (socket: Socket) => {
     const user = socket.data.user as { userId: string; email: string } | undefined;
+    if (user) socket.join(`user:${user.userId}`);
 
     socket.on('board:join', guarded(socket, 'board:join', async (raw: unknown) => {
       const parsed = BoardJoinSchema.safeParse(raw);

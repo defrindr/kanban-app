@@ -64,6 +64,7 @@ router.post(
       action: 'CREATE',
       entityType: 'LIST',
       entityId: list.id,
+      metadata: { entityName: list.title },
     });
 
     notifyBoard(boardId, 'list:created', list, req.user);
@@ -99,6 +100,7 @@ router.put(
       action: 'UPDATE',
       entityType: 'LIST',
       entityId: id,
+      metadata: { entityName: list.title || existing.title },
     });
 
     notifyBoard(existing.boardId, 'list:updated', list, req.user);
@@ -127,6 +129,7 @@ router.delete(
       action: 'DELETE',
       entityType: 'LIST',
       entityId: id,
+      metadata: { entityName: list.title },
     });
 
     await prisma.list.delete({ where: { id } });

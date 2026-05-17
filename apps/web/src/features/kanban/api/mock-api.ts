@@ -76,6 +76,13 @@ function transformBoard(b: any): Board {
   }
 }
 
+const actionMap: Record<string, string> = {
+  CREATE: 'created',
+  UPDATE: 'updated',
+  DELETE: 'deleted',
+  MOVE: 'moved',
+}
+
 function transformActivity(a: any): Activity {
   return {
     id: a.id,
@@ -83,12 +90,15 @@ function transformActivity(a: any): Activity {
     userId: a.user?.id || a.userId,
     userName: a.user?.name || '',
     userAvatar: a.user?.avatar || '',
-    action: a.action.toLowerCase(),
+    action: actionMap[a.action] || a.action.toLowerCase(),
     entityType: a.entityType.toLowerCase(),
     entityId: a.entityId,
     entityName: a.metadata?.entityName,
     fromListId: a.metadata?.fromListId,
     toListId: a.metadata?.toListId,
+    fromListTitle: a.metadata?.fromListTitle,
+    toListTitle: a.metadata?.toListTitle,
+    content: a.metadata?.content,
     createdAt: a.createdAt,
   }
 }
@@ -331,6 +341,16 @@ export async function fetchActivities(boardId: string): Promise<{ ok: true; data
   return { ok: true, data: res.data.map(transformActivity) }
 }
 
+export async function fetchMyTasks(assigneeId: string): Promise<{ ok: true; data: Card[] }> {
+  const res = await apiClient<any[]>(`/api/cards/search?assigneeId=${assigneeId}&limit=100`)
+  return { ok: true, data: (res.data || []).map(transformCard) }
+}
+
 export async function fetchNotifications(): Promise<{ ok: true; data: Notification[] }> {
-  return { ok: true, data: [] }
+  const res = await apiClient<Notification[]>('/api/notifications')
+  return { ok: true, data: res.data || [] }
+}
+
+export async function markNotificationRead(notificationId: string): Promise<void> {
+  await apiClient(`/api/notifications/${notificationId}/read`, { method: 'PUT' })
 }
