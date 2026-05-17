@@ -109,7 +109,7 @@ export function KanbanCard({ card, onClick, isSelected, onUpdate }: KanbanCardPr
                     {isOverdue && ' • Overdue'}
                   </>
                 ) : (
-                  <>{new Date(card.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</>
+                  <>{card.startDate && new Date(card.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</>
                 )}
               </span>
             )}

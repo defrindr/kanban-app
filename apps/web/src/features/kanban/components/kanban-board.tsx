@@ -22,6 +22,7 @@ import { KanbanHeader } from './kanban-header'
 import { KanbanList } from './kanban-list'
 import { CardDetailModal } from './card-detail-modal'
 import { RightSidebar } from './right-sidebar'
+import { GlobalSearchModal } from './global-search-modal'
 import { useToast } from '@/shared/hooks/use-toast'
 import { connectSocket, joinBoard, leaveBoard, disconnectSocket, getSocket } from '@/shared/api/socket'
 import type { Board, Card, Label, BoardMember, Notification } from '../types/kanban'
@@ -53,6 +54,7 @@ export function KanbanBoard({ boardId }: Props) {
   const [showArchived, setShowArchived] = useState(false)
   const [onlineCount, setOnlineCount] = useState(1)
   const [webhooks, setWebhooks] = useState<any[]>([])
+  const [showGlobalSearch, setShowGlobalSearch] = useState(false)
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }))
 
@@ -138,6 +140,34 @@ export function KanbanBoard({ boardId }: Props) {
       }
     }
   }, [searchParams, currentBoard])
+
+  // Global search keyboard shortcut
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault()
+        setShowGlobalSearch(true)
+      }
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [])
+
+  function handleSelectCardFromSearch(cardId: string, boardId: string) {
+    if (boardId !== currentBoard?.id) {
+      // If searching across boards, navigate to that board
+      router.push(`/board/${boardId}?cardId=${cardId}`)
+    } else {
+      // If same board, just select the card
+      for (const list of currentBoard?.lists || []) {
+        const card = list.cards.find(c => c.id === cardId)
+        if (card) {
+          updateSelectedCardRef(card)
+          break
+        }
+      }
+    }
+  }
 
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event
@@ -292,6 +322,39 @@ export function KanbanBoard({ boardId }: Props) {
     else toast.error(res.error?.message || 'Failed to remove member')
   }
 
+  async function handleCreateWebhook(url: string, events: string[]) {
+    if (!currentBoard) return
+    const res = await createWebhook(currentBoard.id, url, events)
+    if (res.ok) {
+      setWebhooks([...webhooks, res.data])
+      toast.success('Webhook created')
+    } else {
+      toast.error(res.error?.message || 'Failed to create webhook')
+    }
+  }
+
+  async function handleUpdateWebhook(webhookId: string, data: { url?: string; events?: string[]; active?: boolean }) {
+    if (!currentBoard) return
+    const res = await updateWebhook(currentBoard.id, webhookId, data)
+    if (res.ok) {
+      setWebhooks(webhooks.map(w => w.id === webhookId ? res.data : w))
+      toast.success('Webhook updated')
+    } else {
+      toast.error(res.error?.message || 'Failed to update webhook')
+    }
+  }
+
+  async function handleDeleteWebhook(webhookId: string) {
+    if (!currentBoard) return
+    const res = await deleteWebhook(currentBoard.id, webhookId)
+    if (res.ok) {
+      setWebhooks(webhooks.filter(w => w.id !== webhookId))
+      toast.success('Webhook deleted')
+    } else {
+      toast.error(res.error?.message || 'Failed to delete webhook')
+    }
+  }
+
   // Filter cards based on search
   const filteredLists = currentBoard?.lists.map((list) => {
     const q = searchQuery.toLowerCase().trim()
@@ -390,18 +453,18 @@ export function KanbanBoard({ boardId }: Props) {
           </div>
 
           <div className="hidden lg:block">
-            <RightSidebar activeTab={rightTab} onTabChange={setRightTab} activities={activities} board={currentBoard} onUpdateBoard={handleUpdateBoard} onAddMember={handleAddBoardMember} onRemoveMember={handleRemoveBoardMember} onDeleteBoard={handleDeleteBoard} />
+            <RightSidebar activeTab={rightTab} onTabChange={setRightTab} activities={activities} board={currentBoard} onUpdateBoard={handleUpdateBoard} onAddMember={handleAddBoardMember} onRemoveMember={handleRemoveBoardMember} onDeleteBoard={handleDeleteBoard} webhooks={webhooks} onCreateWebhook={handleCreateWebhook} onUpdateWebhook={handleUpdateWebhook} onDeleteWebhook={handleDeleteWebhook} />
           </div>
         </div>
       </div>
 
       {showRight && (
         <div className="fixed inset-0 z-40 lg:hidden">
-          <div className="absolute inset-0 bg-black/50" onClick={() => setShowRight(false)} />
-          <div className="absolute right-0 top-0 bottom-0 w-80 bg-white dark:bg-gray-800 shadow-xl">
-            <RightSidebar activeTab={rightTab} onTabChange={setRightTab} activities={activities} board={currentBoard} onUpdateBoard={handleUpdateBoard} onAddMember={handleAddBoardMember} onRemoveMember={handleRemoveBoardMember} onDeleteBoard={handleDeleteBoard} />
-          </div>
-        </div>
+           <div className="absolute inset-0 bg-black/50" onClick={() => setShowRight(false)} />
+           <div className="absolute right-0 top-0 bottom-0 w-80 bg-white dark:bg-gray-800 shadow-xl">
+             <RightSidebar activeTab={rightTab} onTabChange={setRightTab} activities={activities} board={currentBoard} onUpdateBoard={handleUpdateBoard} onAddMember={handleAddBoardMember} onRemoveMember={handleRemoveBoardMember} onDeleteBoard={handleDeleteBoard} webhooks={webhooks} onCreateWebhook={handleCreateWebhook} onUpdateWebhook={handleUpdateWebhook} onDeleteWebhook={handleDeleteWebhook} />
+           </div>
+         </div>
       )}
 
       <CardDetailModal
@@ -419,6 +482,13 @@ export function KanbanBoard({ boardId }: Props) {
         boardMembers={currentBoard.members}
         activities={activities}
         boardLists={currentBoard.lists}
+      />
+
+      <GlobalSearchModal
+        isOpen={showGlobalSearch}
+        onClose={() => setShowGlobalSearch(false)}
+        onSelectCard={handleSelectCardFromSearch}
+        boardId={boardId}
       />
     </div>
   )
