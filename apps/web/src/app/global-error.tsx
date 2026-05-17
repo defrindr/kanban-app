@@ -1,17 +1,17 @@
-'use client'
+'use client';
 
-import { useEffect } from 'react'
+import { useEffect } from 'react';
 
 interface GlobalErrorProps {
-  error: Error & { digest?: string }
-  reset: () => void
+  error: Error & { digest?: string };
+  reset: () => void;
 }
 
 export default function GlobalError({ error, reset }: GlobalErrorProps) {
   useEffect(() => {
     // Log error to an error reporting service
-    console.error('Global error caught:', error)
-  }, [error])
+    console.error('Global error caught:', error);
+  }, [error]);
 
   return (
     <html>
@@ -27,9 +27,7 @@ export default function GlobalError({ error, reset }: GlobalErrorProps) {
               {error.message || 'An unexpected error occurred. Please try again later.'}
             </p>
 
-            {error.digest && (
-              <p className="text-xs text-gray-500 dark:text-gray-500">Error ID: {error.digest}</p>
-            )}
+            {error.digest && <p className="text-xs text-gray-500 dark:text-gray-500">Error ID: {error.digest}</p>}
 
             <button
               onClick={() => reset()}
@@ -41,5 +39,5 @@ export default function GlobalError({ error, reset }: GlobalErrorProps) {
         </div>
       </body>
     </html>
-  )
+  );
 }

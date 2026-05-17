@@ -1,33 +1,36 @@
-'use client'
+'use client';
 
-import { useEffect, useState } from 'react'
-import { fetchAnalytics } from '../api/admin-analytics'
-import { AnalyticsSummary } from './analytics-summary'
-import { ActivityChart } from './activity-chart'
-import { UserEngagement } from './user-engagement'
-import { BoardUsageAnalytics } from './board-usage-analytics'
-import type { AnalyticsData } from '../types'
+import { useEffect, useState } from 'react';
+import { fetchAnalytics } from '../api/admin-analytics';
+import { AnalyticsSummary } from './analytics-summary';
+import { ActivityChart } from './activity-chart';
+import { UserEngagement } from './user-engagement';
+import { BoardUsageAnalytics } from './board-usage-analytics';
+import type { AnalyticsData } from '../types';
 
 export function AnalyticsDashboard() {
-  const [analytics, setAnalytics] = useState<AnalyticsData | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function load() {
-      setLoading(true)
-      const data = await fetchAnalytics()
-      setAnalytics(data)
-      setLoading(false)
+      setLoading(true);
+      const data = await fetchAnalytics();
+      setAnalytics(data);
+      setLoading(false);
     }
-    load()
-  }, [])
+    load();
+  }, []);
 
   if (loading) {
     return (
       <div className="space-y-6">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[...Array(4)].map((_, i) => (
-            <div key={i} className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 animate-pulse">
+            <div
+              key={i}
+              className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 animate-pulse"
+            >
               <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded mb-2" />
               <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded" />
             </div>
@@ -35,11 +38,14 @@ export function AnalyticsDashboard() {
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {[...Array(2)].map((_, i) => (
-            <div key={i} className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6 animate-pulse h-64" />
+            <div
+              key={i}
+              className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6 animate-pulse h-64"
+            />
           ))}
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -119,5 +125,5 @@ export function AnalyticsDashboard() {
         </div>
       )}
     </div>
-  )
+  );
 }

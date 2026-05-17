@@ -8,15 +8,15 @@ export const ADMIN_STATS_KEYS = {
   LISTS: 'lists',
   CARDS: 'cards',
   COMMENTS: 'comments',
-} as const
+} as const;
 
-export type AdminStatKey = typeof ADMIN_STATS_KEYS[keyof typeof ADMIN_STATS_KEYS]
+export type AdminStatKey = (typeof ADMIN_STATS_KEYS)[keyof typeof ADMIN_STATS_KEYS];
 
 export interface AdminStatConfig {
-  key: AdminStatKey
-  label: string
-  color: string
-  icon: string
+  key: AdminStatKey;
+  label: string;
+  color: string;
+  icon: string;
 }
 
 export const ADMIN_STAT_CARDS: AdminStatConfig[] = [
@@ -50,9 +50,9 @@ export const ADMIN_STAT_CARDS: AdminStatConfig[] = [
     color: 'bg-pink-500',
     icon: 'MessageSquareText',
   },
-]
+];
 
 export const ADMIN_PAGINATION = {
   DEFAULT_LIMIT: 20,
-  DEFAULT_PAGE: 1 as number,  // Cast to number to allow flexible type inference
-} as const
+  DEFAULT_PAGE: 1 as number, // Cast to number to allow flexible type inference
+} as const;

@@ -1,44 +1,44 @@
-'use client'
+'use client';
 
-import { useState } from 'react'
-import type { Attachment } from '../types/kanban'
+import { useState } from 'react';
+import type { Attachment } from '../types/kanban';
 
 interface FilePreviewModalProps {
-  file: Attachment | null
-  onClose: () => void
+  file: Attachment | null;
+  onClose: () => void;
 }
 
 export function FilePreviewModal({ file, onClose }: FilePreviewModalProps) {
-  if (!file) return null
+  if (!file) return null;
 
-  const isImage = file.type?.startsWith('image/')
-  const isPdf = file.type?.includes('pdf')
-  const isVideo = file.type?.startsWith('video/')
+  const isImage = file.type?.startsWith('image/');
+  const isPdf = file.type?.includes('pdf');
+  const isVideo = file.type?.startsWith('video/');
 
   const getProxyUrl = (url: string) => {
     if (url.startsWith('/uploads')) {
-      return `/api/files?url=${encodeURIComponent(url)}`
+      return `/api/files?url=${encodeURIComponent(url)}`;
     }
-    return url
-  }
+    return url;
+  };
 
   const handleDownload = async () => {
     try {
-      const proxyUrl = getProxyUrl(file.url)
-      const response = await fetch(proxyUrl)
-      const blob = await response.blob()
-      const downloadUrl = window.URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = downloadUrl
-      a.download = file.name
-      document.body.appendChild(a)
-      a.click()
-      window.URL.revokeObjectURL(downloadUrl)
-      document.body.removeChild(a)
+      const proxyUrl = getProxyUrl(file.url);
+      const response = await fetch(proxyUrl);
+      const blob = await response.blob();
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = downloadUrl;
+      a.download = file.name;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(downloadUrl);
+      document.body.removeChild(a);
     } catch (error) {
-      console.error('Download failed:', error)
+      console.error('Download failed:', error);
     }
-  }
+  };
 
   return (
     <>
@@ -59,7 +59,11 @@ export function FilePreviewModal({ file, onClose }: FilePreviewModalProps) {
                 className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-colors flex items-center gap-2"
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                  />
                 </svg>
                 Download
               </button>
@@ -77,27 +81,25 @@ export function FilePreviewModal({ file, onClose }: FilePreviewModalProps) {
           {/* Content */}
           <div className="flex-1 overflow-auto flex items-center justify-center bg-gray-50 dark:bg-gray-800">
             {isImage ? (
-              <img
-                src={getProxyUrl(file.url)}
-                alt={file.name}
-                className="max-w-full max-h-full object-contain"
-              />
+              <img src={getProxyUrl(file.url)} alt={file.name} className="max-w-full max-h-full object-contain" />
             ) : isPdf ? (
-              <iframe
-                src={getProxyUrl(file.url)}
-                className="w-full h-full"
-                title={file.name}
-              />
+              <iframe src={getProxyUrl(file.url)} className="w-full h-full" title={file.name} />
             ) : isVideo ? (
-              <video
-                src={getProxyUrl(file.url)}
-                controls
-                className="max-w-full max-h-full"
-              />
+              <video src={getProxyUrl(file.url)} controls className="max-w-full max-h-full" />
             ) : (
               <div className="flex flex-col items-center gap-4">
-                <svg className="w-16 h-16 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                <svg
+                  className="w-16 h-16 text-gray-400"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                  />
                 </svg>
                 <div className="text-center">
                   <p className="text-gray-600 dark:text-gray-400">Preview not available</p>
@@ -109,5 +111,5 @@ export function FilePreviewModal({ file, onClose }: FilePreviewModalProps) {
         </div>
       </div>
     </>
-  )
+  );
 }

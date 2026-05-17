@@ -1,12 +1,12 @@
-'use client'
+'use client';
 
-import { useEffect, useState, useCallback } from 'react'
-import { fetchAdminActivities } from '../api/admin-activities'
-import { ACTION_COLORS, ACTIVITY_FILTERS, ACTIVITY_EXPORT, ADMIN_PAGINATION } from '@/lib/constants'
-import type { AdminActivity } from '../types'
+import { useEffect, useState, useCallback } from 'react';
+import { fetchAdminActivities } from '../api/admin-activities';
+import { ACTION_COLORS, ACTIVITY_FILTERS, ACTIVITY_EXPORT, ADMIN_PAGINATION } from '@/lib/constants';
+import type { AdminActivity } from '../types';
 
 function exportAsJSON(activities: AdminActivity[]): void {
-  const data = activities.map(a => ({
+  const data = activities.map((a) => ({
     id: a.id,
     timestamp: a.createdAt,
     user: a.user.name,
@@ -14,14 +14,14 @@ function exportAsJSON(activities: AdminActivity[]): void {
     entityType: a.entityType,
     entityId: a.entityId,
     boardId: a.boardId,
-  }))
-  const json = JSON.stringify(data, null, 2)
-  const filename = `activities-${new Date().toISOString().split('T')[0]}.json`
-  downloadFile(json, filename, ACTIVITY_EXPORT.FORMATS.JSON)
+  }));
+  const json = JSON.stringify(data, null, 2);
+  const filename = `activities-${new Date().toISOString().split('T')[0]}.json`;
+  downloadFile(json, filename, ACTIVITY_EXPORT.FORMATS.JSON);
 }
 
 function exportAsCSV(activities: AdminActivity[]): void {
-  const rows = activities.map(a => [
+  const rows = activities.map((a) => [
     a.id,
     new Date(a.createdAt).toLocaleString(),
     a.user.name,
@@ -29,49 +29,52 @@ function exportAsCSV(activities: AdminActivity[]): void {
     a.entityType,
     a.entityId,
     a.boardId,
-  ])
+  ]);
   const csv = [ACTIVITY_EXPORT.HEADERS, ...rows]
-    .map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
-    .join('\n')
-  const filename = `activities-${new Date().toISOString().split('T')[0]}.csv`
-  downloadFile(csv, filename, ACTIVITY_EXPORT.FORMATS.CSV)
+    .map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+    .join('\n');
+  const filename = `activities-${new Date().toISOString().split('T')[0]}.csv`;
+  downloadFile(csv, filename, ACTIVITY_EXPORT.FORMATS.CSV);
 }
 
 function downloadFile(content: string, filename: string, type: string): void {
-  const blob = new Blob([content], { type })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = filename
-  document.body.appendChild(a)
-  a.click()
-  document.body.removeChild(a)
-  URL.revokeObjectURL(url)
+  const blob = new Blob([content], { type });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 }
 
 export function ActivityLog() {
-  const [activities, setActivities] = useState<AdminActivity[]>([])
-  const [page, setPage] = useState(ADMIN_PAGINATION.DEFAULT_PAGE)
-  const [totalPages, setTotalPages] = useState(1)
-  const [loading, setLoading] = useState(true)
-  const [filters, setFilters] = useState<Record<string, string>>({})
+  const [activities, setActivities] = useState<AdminActivity[]>([]);
+  const [page, setPage] = useState(ADMIN_PAGINATION.DEFAULT_PAGE);
+  const [totalPages, setTotalPages] = useState(1);
+  const [loading, setLoading] = useState(true);
+  const [filters, setFilters] = useState<Record<string, string>>({});
 
-  const load = useCallback(async (p: number) => {
-    setLoading(true)
-    const res = await fetchAdminActivities({ ...filters, page: p, limit: ADMIN_PAGINATION.DEFAULT_LIMIT })
-    if (!res) {
-      setLoading(false)
-      return
-    }
-    setActivities(res.data)
-    setPage(res.meta.page)
-    setTotalPages(res.meta.totalPages)
-    setLoading(false)
-  }, [filters])
+  const load = useCallback(
+    async (p: number) => {
+      setLoading(true);
+      const res = await fetchAdminActivities({ ...filters, page: p, limit: ADMIN_PAGINATION.DEFAULT_LIMIT });
+      if (!res) {
+        setLoading(false);
+        return;
+      }
+      setActivities(res.data);
+      setPage(res.meta.page);
+      setTotalPages(res.meta.totalPages);
+      setLoading(false);
+    },
+    [filters]
+  );
 
   useEffect(() => {
-    load(ADMIN_PAGINATION.DEFAULT_PAGE)
-  }, [load])
+    load(ADMIN_PAGINATION.DEFAULT_PAGE);
+  }, [load]);
 
   return (
     <div>
@@ -128,7 +131,12 @@ export function ActivityLog() {
               className="flex items-start gap-3 p-3 rounded-lg bg-gray-50 dark:bg-gray-800/30 border border-gray-100 dark:border-gray-800"
             >
               <div className="w-7 h-7 rounded-full bg-gradient-to-br from-green-400 to-blue-500 flex items-center justify-center text-white text-xs font-medium flex-shrink-0">
-                {a.user.avatar || a.user.name.split(' ').map((n) => n[0]).join('').slice(0, 2)}
+                {a.user.avatar ||
+                  a.user.name
+                    .split(' ')
+                    .map((n) => n[0])
+                    .join('')
+                    .slice(0, 2)}
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
@@ -173,5 +181,5 @@ export function ActivityLog() {
         </div>
       )}
     </div>
-  )
+  );
 }

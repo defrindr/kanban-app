@@ -1,9 +1,9 @@
-'use client'
+'use client';
 
-import { UserEngagementMetric } from '../types'
+import { UserEngagementMetric } from '../types';
 
 interface UserEngagementProps {
-  data: UserEngagementMetric[]
+  data: UserEngagementMetric[];
 }
 
 export function UserEngagement({ data }: UserEngagementProps) {
@@ -13,20 +13,20 @@ export function UserEngagement({ data }: UserEngagementProps) {
         <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-4">User Engagement</h3>
         <div className="text-center py-8 text-gray-400">No user engagement data</div>
       </div>
-    )
+    );
   }
 
-  const maxScore = Math.max(...data.map(u => u.cardsCreated + u.commentsAdded + u.boardsOwned))
+  const maxScore = Math.max(...data.map((u) => u.cardsCreated + u.commentsAdded + u.boardsOwned));
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
       <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-4">User Engagement</h3>
       <div className="space-y-3">
         {data.slice(0, 8).map((user) => {
-          const score = user.cardsCreated + user.commentsAdded + user.boardsOwned
-          const percentage = maxScore > 0 ? (score / maxScore) * 100 : 0
-          const lastActiveDate = new Date(user.lastActive)
-          const daysAgo = Math.floor((Date.now() - lastActiveDate.getTime()) / (1000 * 60 * 60 * 24))
+          const score = user.cardsCreated + user.commentsAdded + user.boardsOwned;
+          const percentage = maxScore > 0 ? (score / maxScore) * 100 : 0;
+          const lastActiveDate = new Date(user.lastActive);
+          const daysAgo = Math.floor((Date.now() - lastActiveDate.getTime()) / (1000 * 60 * 60 * 24));
 
           return (
             <div key={user.userId} className="flex items-center gap-3">
@@ -51,9 +51,9 @@ export function UserEngagement({ data }: UserEngagementProps) {
                 {daysAgo === 0 ? 'Today' : `${daysAgo}d ago`}
               </div>
             </div>
-          )
+          );
         })}
       </div>
     </div>
-  )
+  );
 }

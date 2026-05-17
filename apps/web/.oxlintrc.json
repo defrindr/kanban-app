@@ -1,0 +1,32 @@
+{
+  "env": {
+    "node": true,
+    "browser": true,
+    "es2024": true
+  },
+  "rules": {
+    "no-constant-condition": "warn",
+    "no-debugger": "error",
+    "no-console": "off",
+    "no-unused-vars": [
+      "warn",
+      {
+        "argsIgnorePattern": "^_",
+        "varsIgnorePattern": "^_"
+      }
+    ],
+    "no-empty-pattern": "error",
+    "no-cond-assign": "error",
+    "eqeqeq": ["error", "always", { "null": "ignore" }],
+    "no-eval": "error",
+    "no-implied-eval": "error",
+    "no-new-func": "error",
+    "prefer-const": "warn",
+    "no-var": "error",
+    "prefer-template": "warn",
+    "no-else-return": "warn",
+    "no-nested-ternary": "warn",
+    "max-nested-callbacks": "warn",
+    "complexity": "warn"
+  }
+}

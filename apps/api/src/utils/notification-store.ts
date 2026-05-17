@@ -32,5 +32,5 @@ export function markRead(userId: string, id: string): boolean {
 export function markAllRead(userId: string): void {
   const list = notifications.get(userId)
   if (!list) return
-  list.forEach(n => { n.read = true })
+  for (const n of list) { n.read = true }
 }

@@ -225,7 +225,7 @@ router.get(
 
     // Aggregate daily metrics
     const dailyMetrics = new Map<string, { cardCreated: number; cardCompleted: number; commentAdded: number; userActive: Set<string> }>();
-    activities.forEach(activity => {
+    for (const activity of activities) {
       const date = activity.createdAt.toISOString().split('T')[0];
       if (!dailyMetrics.has(date)) {
         dailyMetrics.set(date, { cardCreated: 0, cardCompleted: 0, commentAdded: 0, userActive: new Set() });
@@ -235,7 +235,7 @@ router.get(
       if (activity.entityType === 'CARD' && activity.action === 'UPDATE') metric.cardCompleted++;
       if (activity.entityType === 'COMMENT') metric.commentAdded++;
       metric.userActive.add(activity.userId);
-    });
+    }
 
     const dailyActivity = Array.from(dailyMetrics.entries())
       .map(([date, metric]) => ({

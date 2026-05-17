@@ -237,13 +237,13 @@ export function registerSocketHandlers(io: Server) {
     }));
 
     socket.on('disconnect', () => {
-      boardRooms.forEach((room, boardId) => {
+      for (const [boardId, room] of boardRooms.entries()) {
         if (room.has(socket.id)) {
           room.delete(socket.id);
           const users = Array.from(room.values());
           io.to(`board:${boardId}`).emit('user:presence', { boardId, users });
         }
-      });
+      }
     });
   });
 }

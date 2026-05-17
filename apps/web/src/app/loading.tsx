@@ -9,5 +9,5 @@ export default function RootLoading() {
         <span className="text-sm">Loading...</span>
       </div>
     </div>
-  )
+  );
 }

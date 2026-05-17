@@ -1,70 +1,70 @@
-'use client'
+'use client';
 
-import { useEffect, useState } from 'react'
-import { searchGlobally, searchCards } from '../api/mock-api'
+import { useEffect, useState } from 'react';
+import { searchGlobally } from '../api/mock-api';
 
 interface SearchResult {
-  id: string
-  type: 'board' | 'list' | 'card' | 'comment'
-  title: string
-  description?: string
-  boardId?: string
-  listId?: string
-  cardId?: string
-  boardName?: string
-  listName?: string
-  cardTitle?: string
+  id: string;
+  type: 'board' | 'list' | 'card' | 'comment';
+  title: string;
+  description?: string;
+  boardId?: string;
+  listId?: string;
+  cardId?: string;
+  boardName?: string;
+  listName?: string;
+  cardTitle?: string;
 }
 
 interface Props {
-  isOpen: boolean
-  onClose: () => void
-  onSelectCard?: (cardId: string, boardId: string) => void
-  boardId?: string
+  isOpen: boolean;
+  onClose: () => void;
+  onSelectCard?: (cardId: string, boardId: string) => void;
+  boardId?: string;
 }
 
 export function GlobalSearchModal({ isOpen, onClose, onSelectCard, boardId }: Props) {
-  const [query, setQuery] = useState('')
-  const [results, setResults] = useState<SearchResult[]>([])
-  const [loading, setLoading] = useState(false)
-  const [searchType, setSearchType] = useState<'all' | 'card' | 'board' | 'list' | 'comment'>('all')
+  const [query, setQuery] = useState('');
+  const [results, setResults] = useState<SearchResult[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [searchType, setSearchType] = useState<'all' | 'card' | 'board' | 'list' | 'comment'>('all');
 
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
+      if (e.key === 'Escape') onClose();
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-        e.preventDefault()
-        onClose()
+        e.preventDefault();
+        onClose();
       }
-    }
-    if (isOpen) document.addEventListener('keydown', handleEscape)
-    return () => document.removeEventListener('keydown', handleEscape)
-  }, [isOpen, onClose])
+    };
+    if (isOpen) document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [isOpen, onClose]);
 
   useEffect(() => {
     if (!query.trim()) {
-      setResults([])
-      return
+      setResults([]);
+      return;
     }
 
     const search = async () => {
-      setLoading(true)
+      setLoading(true);
       try {
-        const type = searchType === 'all' ? undefined : (searchType as 'board' | 'list' | 'card' | 'comment')
-        const res = await searchGlobally(query, type, 1, 20)
+        const type = searchType === 'all' ? undefined : (searchType as 'board' | 'list' | 'card' | 'comment');
+        const res = await searchGlobally(query, type, 1, 20);
         if (res.ok) {
-          setResults(res.data)
+          setResults(res.data);
         }
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
-    }
+    };
 
-    const timer = setTimeout(search, 300)
-    return () => clearTimeout(timer)
-  }, [query, searchType])
+    const timer = setTimeout(search, 300);
+    return () => clearTimeout(timer);
+  }, [query, searchType]);
 
-  if (!isOpen) return null
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center pt-16">
@@ -72,8 +72,18 @@ export function GlobalSearchModal({ isOpen, onClose, onSelectCard, boardId }: Pr
       <div className="relative w-full max-w-2xl bg-white dark:bg-gray-900 rounded-xl shadow-xl">
         <div className="p-4 border-b border-gray-200 dark:border-gray-800">
           <div className="flex items-center gap-2 bg-gray-100 dark:bg-gray-800 rounded-lg px-3 py-2">
-            <svg className="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+            <svg
+              className="w-5 h-5 text-gray-400"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"
+              />
             </svg>
             <input
               autoFocus
@@ -112,7 +122,15 @@ export function GlobalSearchModal({ isOpen, onClose, onSelectCard, boardId }: Pr
           {loading ? (
             <div className="flex items-center justify-center py-8">
               <svg className="animate-spin h-5 w-5 text-gray-400" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                  fill="none"
+                />
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
               </svg>
             </div>
@@ -127,9 +145,9 @@ export function GlobalSearchModal({ isOpen, onClose, onSelectCard, boardId }: Pr
                   key={`${result.type}-${result.id}`}
                   onClick={() => {
                     if (result.type === 'card' && result.boardId) {
-                      onSelectCard?.(result.id, result.boardId)
+                      onSelectCard?.(result.id, result.boardId);
                     }
-                    onClose()
+                    onClose();
                   }}
                   className="w-full flex items-start gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-left"
                 >
@@ -162,10 +180,20 @@ export function GlobalSearchModal({ isOpen, onClose, onSelectCard, boardId }: Pr
         </div>
 
         <div className="border-t border-gray-200 dark:border-gray-800 p-3 text-xs text-gray-500 dark:text-gray-400 flex items-center justify-between">
-          <span>Press <kbd className="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-800 rounded text-gray-700 dark:text-gray-300 font-mono">Esc</kbd> to close</span>
-          {results.length > 0 && <span>{results.length} result{results.length !== 1 ? 's' : ''}</span>}
+          <span>
+            Press{' '}
+            <kbd className="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-800 rounded text-gray-700 dark:text-gray-300 font-mono">
+              Esc
+            </kbd>{' '}
+            to close
+          </span>
+          {results.length > 0 && (
+            <span>
+              {results.length} result{results.length !== 1 ? 's' : ''}
+            </span>
+          )}
         </div>
       </div>
     </div>
-  )
+  );
 }

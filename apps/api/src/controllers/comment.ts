@@ -85,19 +85,18 @@ router.post(
     ]);
     if (cardInfo) {
       const commenter = req.user!.email.split('@')[0];
-      assignees
-        .filter(a => a.userId !== req.user!.userId)
-        .forEach(a => {
+      for (const a of assignees
+        .filter(a => a.userId !== req.user!.userId)) {
           const msg = `${commenter} commented on "${cardInfo.title}"`;
           const notif = addNotification(a.userId, { userId: a.userId, type: 'comment', message: msg, read: false });
           notifyUser(a.userId, 'notification:new', notif);
-        });
+        }
       const emails = assignees
         .map(a => a.user.email)
         .filter(e => e !== req.user!.email);
       if (emails.length > 0) {
         const opts = commentNotificationEmail(req.user!.email, cardInfo.title, cardInfo.list.board.name, content, `${process.env.APP_URL || 'http://localhost:4000'}/boards/${card.list.boardId}/cards/${cardId}`);
-        emails.forEach(to => sendEmail({ to, ...opts }));
+        for (const to of emails) sendEmail({ to, ...opts });
       }
     }
 
