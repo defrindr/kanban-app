@@ -186,4 +186,149 @@ router.get(
   })
 );
 
+router.get(
+  '/analytics',
+  asyncHandler(async (_, res) => {
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    // Fetch basic stats
+    const [users, boards, lists, cards, comments] = await Promise.all([
+      prisma.user.count(),
+      prisma.board.count(),
+      prisma.list.count(),
+      prisma.card.count(),
+      prisma.comment.count(),
+    ]);
+
+    // Fetch daily activity for last 30 days
+    const activities = await prisma.activity.findMany({
+      where: { createdAt: { gte: thirtyDaysAgo } },
+      select: { createdAt: true, action: true, entityType: true, userId: true },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    // Aggregate daily metrics
+    const dailyMetrics = new Map<string, { cardCreated: number; cardCompleted: number; commentAdded: number; userActive: Set<string> }>();
+    activities.forEach(activity => {
+      const date = activity.createdAt.toISOString().split('T')[0];
+      if (!dailyMetrics.has(date)) {
+        dailyMetrics.set(date, { cardCreated: 0, cardCompleted: 0, commentAdded: 0, userActive: new Set() });
+      }
+      const metric = dailyMetrics.get(date)!;
+      if (activity.entityType === 'CARD' && activity.action === 'CREATE') metric.cardCreated++;
+      if (activity.entityType === 'CARD' && activity.action === 'UPDATE') metric.cardCompleted++;
+      if (activity.entityType === 'COMMENT') metric.commentAdded++;
+      metric.userActive.add(activity.userId);
+    });
+
+    const dailyActivity = Array.from(dailyMetrics.entries())
+      .map(([date, metric]) => ({
+        date,
+        cardCreated: metric.cardCreated,
+        cardCompleted: metric.cardCompleted,
+        commentAdded: metric.commentAdded,
+        userActive: metric.userActive.size,
+      }))
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+    // Fetch user engagement
+    const userStats = await prisma.user.findMany({
+      where: { role: 'USER' },
+      select: {
+        id: true,
+        name: true,
+        avatar: true,
+        createdAt: true,
+        _count: { select: { cardsCreated: true, comments: true, boardsOwned: true } },
+      },
+    });
+
+    const userEngagement = await Promise.all(
+      userStats.map(async (user) => {
+        const lastActivity = await prisma.activity.findFirst({
+          where: { userId: user.id },
+          orderBy: { createdAt: 'desc' },
+        });
+        const daysActive = Math.max(1, Math.ceil((Date.now() - new Date(user.createdAt).getTime()) / (1000 * 60 * 60 * 24)));
+        return {
+          userId: user.id,
+          username: user.name,
+          avatar: user.avatar,
+          lastActive: lastActivity?.createdAt.toISOString() || user.createdAt.toISOString(),
+          cardsCreated: user._count.cardsCreated,
+          commentsAdded: user._count.comments,
+          boardsOwned: user._count.boardsOwned,
+          avgActivityPerDay: (user._count.cardsCreated + user._count.comments) / daysActive,
+        };
+      })
+    );
+
+    // Fetch board usage
+    const boardStats = await prisma.board.findMany({
+      select: {
+        id: true,
+        name: true,
+        createdAt: true,
+        updatedAt: true,
+        _count: { select: { cards: true, members: true } },
+      },
+      orderBy: { updatedAt: 'desc' },
+    });
+
+    const boardUsage = await Promise.all(
+      boardStats.slice(0, 10).map(async (board) => {
+        const completedCards = await prisma.card.count({
+          where: { boardId: board.id, completed: true },
+        });
+        const cardActivities = activities.filter(a => a.entityType === 'CARD');
+        const boardActivity = cardActivities.length > 0 ? cardActivities.length : 0;
+        const daysActive = Math.max(1, Math.ceil((new Date(board.updatedAt).getTime() - new Date(board.createdAt).getTime()) / (1000 * 60 * 60 * 24)));
+        
+        return {
+          boardId: board.id,
+          boardName: board.name,
+          cardsTotal: board._count.cards,
+          cardsCompleted: completedCards,
+          members: board._count.members,
+          lastActive: board.updatedAt.toISOString(),
+          avgCardsPerDay: boardActivity / daysActive,
+        };
+      })
+    );
+
+    // Top contributors
+    const topContributors = userEngagement
+      .sort((a, b) => (b.cardsCreated + b.commentsAdded) - (a.cardsCreated + a.commentsAdded))
+      .slice(0, 5)
+      .map(u => ({
+        name: u.username,
+        avatar: u.avatar,
+        contributions: u.cardsCreated + u.commentsAdded,
+      }));
+
+    // Most active boards
+    const mostActiveBoards = boardUsage
+      .sort((a, b) => b.avgCardsPerDay - a.avgCardsPerDay)
+      .slice(0, 5)
+      .map(b => ({
+        name: b.boardName,
+        activity: Math.round(b.avgCardsPerDay * 100) / 100,
+      }));
+
+    res.json({
+      ok: true,
+      data: {
+        stats: { users, boards, lists, cards, comments },
+        dailyActivity: dailyActivity.slice(-30),
+        userEngagement,
+        boardUsage,
+        topContributors,
+        mostActiveBoards,
+      },
+    });
+  })
+);
+
+
 export default router;

@@ -6,6 +6,44 @@ export type AdminStats = {
   comments: number
 }
 
+export type DailyActivityMetric = {
+  date: string
+  cardCreated: number
+  cardCompleted: number
+  commentAdded: number
+  userActive: number
+}
+
+export type UserEngagementMetric = {
+  userId: string
+  username: string
+  avatar: string | null
+  lastActive: string
+  cardsCreated: number
+  commentsAdded: number
+  boardsOwned: number
+  avgActivityPerDay: number
+}
+
+export type BoardUsageMetric = {
+  boardId: string
+  boardName: string
+  cardsTotal: number
+  cardsCompleted: number
+  members: number
+  lastActive: string
+  avgCardsPerDay: number
+}
+
+export type AnalyticsData = {
+  stats: AdminStats
+  dailyActivity: DailyActivityMetric[]
+  userEngagement: UserEngagementMetric[]
+  boardUsage: BoardUsageMetric[]
+  topContributors: { name: string; avatar: string | null; contributions: number }[]
+  mostActiveBoards: { name: string; activity: number }[]
+}
+
 export type AdminUser = {
   id: string
   email: string

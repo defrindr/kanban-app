@@ -8,11 +8,12 @@ import { StatsCards } from '@/features/admin/components/stats-cards'
 import { UsersTable } from '@/features/admin/components/users-table'
 import { BoardsTable } from '@/features/admin/components/boards-table'
 import { ActivityLog } from '@/features/admin/components/activity-log'
+import { AnalyticsDashboard } from '@/features/admin/components/analytics-dashboard'
 import { fetchAdminStats } from '@/features/admin/api/admin-stats'
 import type { AdminStats } from '@/features/admin/types'
 import Link from 'next/link'
 
-type Tab = 'overview' | 'users' | 'boards' | 'activity'
+type Tab = 'overview' | 'analytics' | 'users' | 'boards' | 'activity'
 
 export default function AdminPage() {
   const { user, isLoading: authLoading } = useAuthStore()
@@ -43,6 +44,7 @@ export default function AdminPage() {
 
   const tabs: { key: Tab; label: string }[] = [
     { key: 'overview', label: 'Overview' },
+    { key: 'analytics', label: 'Analytics' },
     { key: 'users', label: 'Users' },
     { key: 'boards', label: 'Boards' },
     { key: 'activity', label: 'Activity Log' },
@@ -122,6 +124,12 @@ export default function AdminPage() {
             <div>
               <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-6">System Overview</h2>
               <StatsCards stats={stats} />
+            </div>
+          )}
+          {tab === 'analytics' && (
+            <div>
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-6">Analytics & Insights</h2>
+              <AnalyticsDashboard />
             </div>
           )}
           {tab === 'users' && (

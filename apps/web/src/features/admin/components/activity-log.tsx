@@ -33,6 +33,47 @@ export function ActivityLog() {
   const entityTypes = ['', 'BOARD', 'LIST', 'CARD', 'COMMENT']
   const actions = ['', 'CREATE', 'UPDATE', 'DELETE', 'MOVE']
 
+  function exportAsJSON() {
+    const data = activities.map(a => ({
+      id: a.id,
+      timestamp: a.createdAt,
+      user: a.user.name,
+      action: a.action,
+      entityType: a.entityType,
+      entityId: a.entityId,
+      boardId: a.boardId,
+    }))
+    const json = JSON.stringify(data, null, 2)
+    downloadFile(json, `activities-${new Date().toISOString().split('T')[0]}.json`, 'application/json')
+  }
+
+  function exportAsCSV() {
+    const headers = ['ID', 'Timestamp', 'User', 'Action', 'Entity Type', 'Entity ID', 'Board ID']
+    const rows = activities.map(a => [
+      a.id,
+      new Date(a.createdAt).toLocaleString(),
+      a.user.name,
+      a.action,
+      a.entityType,
+      a.entityId,
+      a.boardId,
+    ])
+    const csv = [headers, ...rows].map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')).join('\n')
+    downloadFile(csv, `activities-${new Date().toISOString().split('T')[0]}.csv`, 'text/csv')
+  }
+
+  function downloadFile(content: string, filename: string, type: string) {
+    const blob = new Blob([content], { type })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = filename
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  }
+
   return (
     <div>
       <div className="flex flex-wrap gap-2 mb-4">
@@ -44,6 +85,10 @@ export function ActivityLog() {
           <option value="">All Types</option>
           {entityTypes.filter(Boolean).map((t) => <option key={t} value={t}>{t}</option>)}
         </select>
+        <div className="ml-auto flex gap-2">
+          <button onClick={exportAsJSON} className="px-3 py-1.5 text-xs font-medium rounded-lg bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors">Export JSON</button>
+          <button onClick={exportAsCSV} className="px-3 py-1.5 text-xs font-medium rounded-lg bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-300 hover:bg-green-100 dark:hover:bg-green-900/40 transition-colors">Export CSV</button>
+        </div>
       </div>
 
       {loading ? (
