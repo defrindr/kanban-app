@@ -6,28 +6,31 @@ interface Props {
   onTabChange: (tab: 'settings' | 'activity') => void
   activities: Activity[]
   board?: Board | null
-  onUpdateBoard?: (data: { name?: string; description?: string }) => void
+  onUpdateBoard?: (data: { name?: string; description?: string; visibility?: 'workspace' | 'private' | 'public' }) => void
   onAddMember?: (member: BoardMember) => void
   onRemoveMember?: (memberId: string) => void
+  onDeleteBoard?: () => void
 }
 
-export function RightSidebar({ activeTab, onTabChange, activities, board, onUpdateBoard, onAddMember, onRemoveMember }: Props) {
+export function RightSidebar({ activeTab, onTabChange, activities, board, onUpdateBoard, onAddMember, onRemoveMember, onDeleteBoard }: Props) {
   const [boardName, setBoardName] = useState(board?.name || '')
   const [boardDesc, setBoardDesc] = useState(board?.description || '')
+  const [visibility, setVisibility] = useState(board?.visibility || 'workspace')
   const [newMemberName, setNewMemberName] = useState('')
   const [newMemberEmail, setNewMemberEmail] = useState('')
 
   useEffect(() => {
     setBoardName(board?.name || '')
     setBoardDesc(board?.description || '')
-  }, [board?.name, board?.description])
+    setVisibility(board?.visibility || 'workspace')
+  }, [board?.name, board?.description, board?.visibility])
 
   function getInitials(name: string) {
     return name.split(' ').map((n) => n[0]).join('')
   }
 
   function handleSave() {
-    onUpdateBoard?.({ name: boardName, description: boardDesc })
+    onUpdateBoard?.({ name: boardName, description: boardDesc, visibility })
   }
 
   function handleAddMember() {
@@ -94,10 +97,10 @@ export function RightSidebar({ activeTab, onTabChange, activities, board, onUpda
             </div>
             <div>
               <label className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Visibility</label>
-              <select className="w-full mt-1.5 px-3 py-2 text-sm bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white">
-                <option>Workspace visible</option>
-                <option>Private</option>
-                <option>Public</option>
+              <select value={visibility} onChange={(e) => setVisibility(e.target.value as typeof visibility)} className="w-full mt-1.5 px-3 py-2 text-sm bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white">
+                <option value="workspace">Workspace visible</option>
+                <option value="private">Private</option>
+                <option value="public">Public</option>
               </select>
             </div>
             <button onClick={handleSave} className="w-full py-2 bg-blue-600 dark:bg-blue-500 text-white text-sm font-medium rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors">Save Changes</button>
@@ -128,6 +131,12 @@ export function RightSidebar({ activeTab, onTabChange, activities, board, onUpda
                 <button onClick={handleAddMember} disabled={!newMemberName.trim() || !newMemberEmail.trim()}
                   className="w-full py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm font-medium rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors disabled:opacity-50">Add Member</button>
               </div>
+            </div>
+
+            <div className="pt-6 border-t border-gray-200 dark:border-gray-700/50">
+              <button onClick={onDeleteBoard} className="w-full py-2 text-red-600 dark:text-red-400 text-sm font-medium rounded-lg border border-red-200 dark:border-red-800/50 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
+                Delete Board
+              </button>
             </div>
           </div>
         )}

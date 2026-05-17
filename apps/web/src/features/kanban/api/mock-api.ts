@@ -180,16 +180,16 @@ export async function createList(boardId: string, title: string): Promise<{ ok: 
   return { ok: true, data: transformList(res.data) }
 }
 
-export async function updateList(listId: string, data: { title?: string }): Promise<{ ok: true; data: List } | { ok: false; error: { code: string; message: string } }> {
+export async function updateList(listId: string, data: { title?: string; position?: number }): Promise<{ ok: true; data: List } | { ok: false; error: { code: string; message: string } }> {
   const res = await apiClient<any>(`/api/lists/${listId}`, {
     method: 'PUT',
     body: JSON.stringify(data),
   })
   if (!res.ok) return { ok: false, error: res.error }
   const b = await fetchBoard(res.data.boardId)
-  if (!b.ok) return { ok: true, data: { id: listId, boardId: '', title: data.title || '', position: 0, cards: [] } }
+  if (!b.ok) return { ok: true, data: { id: listId, boardId: '', title: '', position: data.position || 0, cards: [] } as List }
   const list = b.data.lists.find((l) => l.id === listId)
-  return { ok: true, data: list || { id: listId, boardId: '', title: data.title || '', position: 0, cards: [] } }
+  return { ok: true, data: list || { id: listId, boardId: '', title: '', position: data.position || 0, cards: [] } as List }
 }
 
 export async function deleteList(listId: string): Promise<{ ok: true }> {
@@ -298,6 +298,10 @@ export async function removeBoardMember(boardId: string, memberId: string): Prom
   const res = await apiClient<any>(`/api/boards/${boardId}/members/${memberId}`, { method: 'DELETE' })
   if (!res.ok) return { ok: false, error: res.error }
   return { ok: true, data: transformBoard(res.data) }
+}
+
+export async function deleteBoard(boardId: string): Promise<{ ok: true } | { ok: false; error: { code: string; message: string } }> {
+  return apiClient(`/api/boards/${boardId}`, { method: 'DELETE' })
 }
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'

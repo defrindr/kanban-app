@@ -68,6 +68,7 @@ export const BoardSchema = z.object({
   id: z.string(),
   name: z.string(),
   description: z.string().optional(),
+  visibility: z.enum(['workspace', 'private', 'public']).optional(),
   ownerId: z.string(),
   lists: z.array(ListSchema),
   members: z.array(BoardMemberSchema),

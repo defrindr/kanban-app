@@ -91,7 +91,14 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
   moveCard: (card, fromListId, toListId, newPosition) => set((s) => {
     if (!s.currentBoard) return s
     const lists = s.currentBoard.lists.map((l) => {
-      if (l.id === fromListId) return { ...l, cards: l.cards.filter((c) => c.id !== card.id) }
+      if (l.id === fromListId) {
+        const remaining = l.cards.filter((c) => c.id !== card.id)
+        if (fromListId === toListId) {
+          const moved = { ...card, listId: toListId, position: newPosition, updatedAt: new Date().toISOString() }
+          return { ...l, cards: [...remaining, moved].sort((a, b) => a.position - b.position) }
+        }
+        return { ...l, cards: remaining }
+      }
       if (l.id === toListId) {
         const moved = { ...card, listId: toListId, position: newPosition, updatedAt: new Date().toISOString() }
         return { ...l, cards: [...l.cards, moved].sort((a, b) => a.position - b.position) }

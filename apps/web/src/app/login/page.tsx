@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useAuthStore } from '@/features/auth/stores/auth-store'
@@ -11,6 +11,11 @@ export default function LoginPage() {
   const [error, setError] = useState('')
   const { login, loginWithGoogle, isLoading } = useAuthStore()
   const router = useRouter()
+
+  useEffect(() => {
+    const token = localStorage.getItem('kanban-token')
+    if (!token) useAuthStore.setState({ isLoading: false })
+  }, [])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
