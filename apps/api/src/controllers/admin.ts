@@ -232,15 +232,12 @@ router.get(
       }))
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
-    // Fetch user engagement
+    // Fetch user engagement with correct relations
     const userStats = await prisma.user.findMany({
       where: { role: 'USER' },
-      select: {
-        id: true,
-        name: true,
-        avatar: true,
-        createdAt: true,
-        _count: { select: { cardsCreated: true, comments: true, boardsOwned: true } },
+      include: {
+        comments: true,
+        boards: true,
       },
     });
 
@@ -251,51 +248,47 @@ router.get(
           orderBy: { createdAt: 'desc' },
         });
         const daysActive = Math.max(1, Math.ceil((Date.now() - new Date(user.createdAt).getTime()) / (1000 * 60 * 60 * 24)));
+        const boardsOwned = await prisma.board.count({ where: { ownerId: user.id } });
+        
         return {
           userId: user.id,
           username: user.name,
           avatar: user.avatar,
           lastActive: lastActivity?.createdAt.toISOString() || user.createdAt.toISOString(),
-          cardsCreated: user._count.cardsCreated,
-          commentsAdded: user._count.comments,
-          boardsOwned: user._count.boardsOwned,
-          avgActivityPerDay: (user._count.cardsCreated + user._count.comments) / daysActive,
+          cardsCreated: user.boards.length || 0,
+          commentsAdded: user.comments.length,
+          boardsOwned,
+          avgActivityPerDay: (user.comments.length + (user.boards.length || 0)) / daysActive,
         };
       })
     );
 
-    // Fetch board usage
+    // Fetch board usage with correct relations
     const boardStats = await prisma.board.findMany({
-      select: {
-        id: true,
-        name: true,
-        createdAt: true,
-        updatedAt: true,
-        _count: { select: { cards: true, members: true } },
+      include: {
+        lists: { include: { cards: true } },
+        members: true,
       },
       orderBy: { updatedAt: 'desc' },
+      take: 10,
     });
 
-    const boardUsage = await Promise.all(
-      boardStats.slice(0, 10).map(async (board) => {
-        const completedCards = await prisma.card.count({
-          where: { boardId: board.id, completed: true },
-        });
-        const cardActivities = activities.filter(a => a.entityType === 'CARD');
-        const boardActivity = cardActivities.length > 0 ? cardActivities.length : 0;
-        const daysActive = Math.max(1, Math.ceil((new Date(board.updatedAt).getTime() - new Date(board.createdAt).getTime()) / (1000 * 60 * 60 * 24)));
-        
-        return {
-          boardId: board.id,
-          boardName: board.name,
-          cardsTotal: board._count.cards,
-          cardsCompleted: completedCards,
-          members: board._count.members,
-          lastActive: board.updatedAt.toISOString(),
-          avgCardsPerDay: boardActivity / daysActive,
-        };
-      })
-    );
+    const boardUsage = boardStats.map((board) => {
+      const allCards = board.lists.flatMap(l => l.cards);
+      const archivedCards = allCards.filter(c => c.archived).length;
+      const cardActivities = activities.filter(a => a.entityType === 'CARD');
+      const daysActive = Math.max(1, Math.ceil((new Date(board.updatedAt).getTime() - new Date(board.createdAt).getTime()) / (1000 * 60 * 60 * 24)));
+      
+      return {
+        boardId: board.id,
+        boardName: board.name,
+        cardsTotal: allCards.length,
+        cardsCompleted: archivedCards,
+        members: board.members.length,
+        lastActive: board.updatedAt.toISOString(),
+        avgCardsPerDay: cardActivities.length / daysActive,
+      };
+    });
 
     // Top contributors
     const topContributors = userEngagement
