@@ -5,6 +5,7 @@ import { AppError } from '../errors.js';
 export interface AuthPayload {
   userId: string;
   email: string;
+  role: string;
 }
 
 declare global {
@@ -33,6 +34,13 @@ export const authGuard = (req: Request, _res: Response, next: NextFunction) => {
   }
 };
 
+export const adminGuard = (req: Request, _res: Response, next: NextFunction) => {
+  if (!req.user || req.user.role !== 'ADMIN') {
+    return next(new AppError('FORBIDDEN', 'Admin access required', 403));
+  }
+  next();
+};
+
 export const optionalAuth = (req: Request, _res: Response, next: NextFunction) => {
   const header = req.headers.authorization;
   if (!header?.startsWith('Bearer ')) {
@@ -50,7 +58,7 @@ export const optionalAuth = (req: Request, _res: Response, next: NextFunction) =
   next();
 };
 
-export function signToken(payload: AuthPayload): string {
+export function signToken(payload: { userId: string; email: string; role: string }): string {
   const expiresIn = process.env.JWT_EXPIRES_IN || '7d';
   return jwt.sign(payload, JWT_SECRET, { expiresIn } as jwt.SignOptions);
 }

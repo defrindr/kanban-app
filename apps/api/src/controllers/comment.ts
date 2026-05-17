@@ -6,6 +6,7 @@ import { asyncHandler } from '../middleware/error-handler.js';
 import { CreateCommentSchema, UpdateCommentSchema, PaginationSchema } from '../utils/validation.js';
 import { notifyBoard } from '../utils/notifications.js';
 import { logActivity } from '../utils/activity.js';
+import { sendEmail, commentNotificationEmail } from '../utils/email.js';
 
 const router = Router();
 
@@ -73,7 +74,22 @@ router.post(
       entityId: comment.id,
     });
 
-    notifyBoard(card.list.boardId, 'comment:created', comment);
+    notifyBoard(card.list.boardId, 'comment:created', comment, req.user);
+
+    const [cardInfo, assignees] = await Promise.all([
+      prisma.card.findUnique({ where: { id: cardId }, select: { title: true, list: { select: { board: { select: { name: true } } } } } }),
+      prisma.cardAssignee.findMany({ where: { cardId }, include: { user: { select: { email: true } } } }),
+    ]);
+    if (cardInfo) {
+      const emails = assignees
+        .map(a => a.user.email)
+        .filter(e => e !== req.user!.email);
+      if (emails.length > 0) {
+        const opts = commentNotificationEmail(req.user!.email, cardInfo.title, cardInfo.list.board.name, content, `${process.env.APP_URL || 'http://localhost:4000'}/boards/${card.list.boardId}/cards/${cardId}`);
+        emails.forEach(to => sendEmail({ to, ...opts }));
+      }
+    }
+
     res.status(201).json({ ok: true, data: comment });
   })
 );
@@ -116,7 +132,7 @@ router.put(
       entityId: id,
     });
 
-    notifyBoard(comment.card.list.boardId, 'comment:updated', updated);
+    notifyBoard(comment.card.list.boardId, 'comment:updated', updated, req.user);
     res.json({ ok: true, data: updated });
   })
 );
@@ -152,7 +168,7 @@ router.delete(
     });
 
     await prisma.comment.delete({ where: { id } });
-    notifyBoard(comment.card.list.boardId, 'comment:deleted', { id });
+    notifyBoard(comment.card.list.boardId, 'comment:deleted', { id }, req.user);
     res.json({ ok: true, data: { success: true } });
   })
 );

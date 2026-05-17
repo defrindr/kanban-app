@@ -1,70 +1,80 @@
-version: '3.8'
-
 services:
-  postgres:
-    image: postgres:16-alpine
-    container_name: kanban-postgres
-    environment:
-      POSTGRES_USER: kanban
-      POSTGRES_PASSWORD: kanban123
-      POSTGRES_DB: kanban
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U kanban"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-
-  redis:
-    image: redis:7-alpine
-    container_name: kanban-redis
-    ports:
-      - "6379:6379"
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-
   api:
     build:
       context: ./apps/api
       dockerfile: Dockerfile
       target: development
-    container_name: kanban-api
     ports:
-      - "3001:3001"
+      - "4000:3001"
     volumes:
       - ./apps/api/src:/app/src
       - ./apps/api/prisma:/app/prisma
-      - /app/node_modules
+    command: >
+      sh -c "npx prisma db push --skip-generate && npm run dev"
     environment:
-      DATABASE_URL: postgresql://kanban:kanban123@postgres:5432/kanban
-      REDIS_URL: redis://redis:6379
-      JWT_SECRET: dev-secret-change-in-prod
-      NODE_ENV: development
-      CORS_ORIGIN: http://localhost:3000
+      - NODE_ENV=development
+      - PORT=3001
+      - DATABASE_URL=postgresql://kanban:kanban@postgres:5432/kanban
+      - REDIS_URL=redis://redis:6379
+      - JWT_SECRET=dev-secret-change-in-prod
+      - CORS_ORIGIN=http://localhost:3000
+      - REDIS_HOST=redis
+      - POSTGRES_HOST=postgres
+      - POSTGRES_USER=kanban
+      - POSTGRES_PASSWORD=kanban
+      - POSTGRES_DB=kanban
+      - SMTP_HOST=
+      - SMTP_PORT=
+      - SMTP_USER=
+      - SMTP_PASS=
+      - EMAIL_FROM=noreply@kanban.app
+      - APP_URL=http://localhost:4000
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
 
-  web:
-    build:
-      context: ./apps/web
-      dockerfile: Dockerfile
-    container_name: kanban-web
+  postgres:
+    image: postgres:16-alpine
     ports:
-      - "3000:3000"
+      - "5432:5432"
     environment:
-      NEXT_PUBLIC_API_URL: http://api:3001
-      NEXT_PUBLIC_WS_URL: ws://api:3001
-    depends_on:
-      - api
+      - POSTGRES_USER=kanban
+      - POSTGRES_PASSWORD=kanban
+      - POSTGRES_DB=kanban
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kanban -d kanban"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    restart: unless-stopped
 
 volumes:
   postgres_data:
+  redis_data:

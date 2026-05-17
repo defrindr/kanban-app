@@ -63,7 +63,7 @@ router.post(
       entityId: list.id,
     });
 
-    notifyBoard(boardId, 'list:created', list);
+    notifyBoard(boardId, 'list:created', list, req.user);
     res.status(201).json({ ok: true, data: list });
   })
 );
@@ -96,7 +96,7 @@ router.put(
       entityId: id,
     });
 
-    notifyBoard(existing.boardId, 'list:updated', list);
+    notifyBoard(existing.boardId, 'list:updated', list, req.user);
     res.json({ ok: true, data: list });
   })
 );
@@ -123,7 +123,7 @@ router.delete(
     });
 
     await prisma.list.delete({ where: { id } });
-    notifyBoard(list.boardId, 'list:deleted', { id });
+    notifyBoard(list.boardId, 'list:deleted', { id }, req.user);
     res.json({ ok: true, data: { success: true } });
   })
 );

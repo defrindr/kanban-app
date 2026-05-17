@@ -7,6 +7,11 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum UserRole {
+  USER
+  ADMIN
+}
+
 enum BoardRole {
   ADMIN
   MEMBER
@@ -33,6 +38,7 @@ model User {
   name      String
   avatar    String?
   password  String   @default("")
+  role      UserRole @default(USER)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -51,6 +57,7 @@ model Board {
   lists       List[]
   members     BoardMember[]
   activities  Activity[]
+  webhooks    Webhook[]
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -153,6 +160,20 @@ model Activity {
   @@index([boardId])
   @@index([userId])
   @@index([createdAt])
+}
+
+model Webhook {
+  id        String   @id @default(cuid())
+  boardId   String
+  url       String
+  secret    String
+  events    String[]
+  active    Boolean  @default(true)
+  board     Board    @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([boardId])
 }
 
 model RefreshToken {

@@ -186,7 +186,8 @@ export const spec = {
     description: 'Production-grade kanban board REST API with auth, RBAC, boards, lists, cards, comments, labels, and attachments.',
   },
   servers: [
-    { url: 'http://localhost:4000', description: 'Local development' },
+    { url: 'http://localhost:4000/api/v1', description: 'Local development (v1)' },
+    { url: 'http://localhost:4000/api', description: 'Local development (legacy — deprecated)' },
   ],
   components: {
     securitySchemes: {
@@ -250,76 +251,78 @@ export const spec = {
                       properties: {
                         token: { type: 'string', description: 'JWT access token (expires 7d)' },
                         refreshToken: { type: 'string', description: 'Refresh token (expires 30d, one-time use)' },
-                        user: {
-                          type: 'object',
-                          properties: {
-                            id: { type: 'string' },
-                            email: { type: 'string' },
-                            name: { type: 'string' },
-                            avatar: { type: 'string', nullable: true },
-                          },
-                        },
-                      },
-                    },
-                  },
-                },
-              },
-            },
-          },
-          '409': { description: 'Email already registered', content: { 'application/json': { schema: { $ref: '#/components/schemas/Error' } } } },
-          '422': { description: 'Validation error', content: { 'application/json': { schema: { $ref: '#/components/schemas/Error' } } } },
-        },
-      },
-    },
-    '/api/auth/login': {
-      post: {
-        tags: ['Auth'],
-        summary: 'Login with email and password',
-        requestBody: {
-          required: true,
-          content: {
-            'application/json': {
-              schema: {
-                type: 'object',
-                required: ['email', 'password'],
-                properties: {
-                  email: { type: 'string', format: 'email', example: 'user@example.com' },
-                  password: { type: 'string', example: 'password123' },
-                },
-              },
-            },
-          },
-        },
-        responses: {
-          '200': {
-            description: 'Login successful',
-            content: {
-              'application/json': {
-                schema: {
-                  type: 'object',
-                  properties: {
-                    ok: { type: 'boolean', enum: [true] },
-                    data: {
-                      type: 'object',
-                      properties: {
-                        token: { type: 'string', description: 'JWT access token (expires 7d)' },
-                        refreshToken: { type: 'string', description: 'Refresh token (expires 30d, one-time use)' },
-                        user: {
-                          type: 'object',
-                          properties: {
-                            id: { type: 'string' },
-                            email: { type: 'string' },
-                            name: { type: 'string' },
-                            avatar: { type: 'string', nullable: true },
-                          },
-                        },
-                      },
-                    },
-                  },
-                },
-              },
-            },
-          },
+                         user: {
+                           type: 'object',
+                           properties: {
+                             id: { type: 'string' },
+                             email: { type: 'string' },
+                             name: { type: 'string' },
+                             avatar: { type: 'string', nullable: true },
+                             role: { type: 'string', enum: ['USER', 'ADMIN'] },
+                           },
+                         },
+                       },
+                     },
+                   },
+                 },
+               },
+             },
+           },
+           '409': { description: 'Email already registered', content: { 'application/json': { schema: { $ref: '#/components/schemas/Error' } } } },
+           '422': { description: 'Validation error', content: { 'application/json': { schema: { $ref: '#/components/schemas/Error' } } } },
+         },
+       },
+     },
+     '/api/auth/login': {
+       post: {
+         tags: ['Auth'],
+         summary: 'Login with email and password',
+         requestBody: {
+           required: true,
+           content: {
+             'application/json': {
+               schema: {
+                 type: 'object',
+                 required: ['email', 'password'],
+                 properties: {
+                   email: { type: 'string', format: 'email', example: 'user@example.com' },
+                   password: { type: 'string', example: 'password123' },
+                 },
+               },
+             },
+           },
+         },
+         responses: {
+           '200': {
+             description: 'Login successful',
+             content: {
+               'application/json': {
+                 schema: {
+                   type: 'object',
+                   properties: {
+                     ok: { type: 'boolean', enum: [true] },
+                     data: {
+                       type: 'object',
+                       properties: {
+                         token: { type: 'string', description: 'JWT access token (expires 7d)' },
+                         refreshToken: { type: 'string', description: 'Refresh token (expires 30d, one-time use)' },
+                         user: {
+                           type: 'object',
+                           properties: {
+                             id: { type: 'string' },
+                             email: { type: 'string' },
+                             name: { type: 'string' },
+                             avatar: { type: 'string', nullable: true },
+                             role: { type: 'string', enum: ['USER', 'ADMIN'] },
+                           },
+                         },
+                       },
+                     },
+                   },
+                 },
+               },
+             },
+           },
           '401': { description: 'Invalid email or password', content: { 'application/json': { schema: { $ref: '#/components/schemas/Error' } } } },
         },
       },
@@ -516,12 +519,21 @@ export const spec = {
     '/api/boards/{id}/activities': {
       get: {
         tags: ['Boards'],
-        summary: 'Get activity log for a board',
+        summary: 'Get activity log for a board with pagination and filters',
         security: [bearerAuth],
-        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
+        parameters: [
+          { name: 'id', in: 'path', required: true, schema: { type: 'string' } },
+          { name: 'page', in: 'query', schema: { type: 'integer', default: 1 } },
+          { name: 'limit', in: 'query', schema: { type: 'integer', default: 20, maximum: 100 } },
+          { name: 'action', in: 'query', schema: { type: 'string', enum: ['CREATE', 'UPDATE', 'DELETE', 'MOVE'] }, description: 'Filter by action type' },
+          { name: 'entityType', in: 'query', schema: { type: 'string', enum: ['BOARD', 'LIST', 'CARD', 'COMMENT'] }, description: 'Filter by entity type' },
+          { name: 'userId', in: 'query', schema: { type: 'string' }, description: 'Filter by user ID' },
+          { name: 'dateFrom', in: 'query', schema: { type: 'string', format: 'date-time' }, description: 'Filter activities after this date' },
+          { name: 'dateTo', in: 'query', schema: { type: 'string', format: 'date-time' }, description: 'Filter activities before this date' },
+        ],
         responses: {
           '200': {
-            description: 'Recent activities',
+            description: 'Paginated filtered activities',
             content: {
               'application/json': {
                 schema: {
@@ -552,11 +564,21 @@ export const spec = {
                         },
                       },
                     },
+                    meta: {
+                      type: 'object',
+                      properties: {
+                        page: { type: 'integer' },
+                        limit: { type: 'integer' },
+                        total: { type: 'integer' },
+                        totalPages: { type: 'integer' },
+                      },
+                    },
                   },
                 },
               },
             },
           },
+          '422': { description: 'Invalid filter parameters' },
         },
       },
     },
@@ -677,6 +699,118 @@ export const spec = {
         },
       },
     },
+    '/api/boards/{boardId}/webhooks': {
+      get: {
+        tags: ['Webhooks'],
+        summary: 'List all webhooks for a board (admin only)',
+        security: [bearerAuth],
+        parameters: [{ name: 'boardId', in: 'path', required: true, schema: { type: 'string' } }],
+        responses: {
+          '200': {
+            description: 'List of webhooks',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    ok: { type: 'boolean' },
+                    data: {
+                      type: 'array',
+                      items: {
+                        type: 'object',
+                        properties: {
+                          id: { type: 'string' },
+                          url: { type: 'string' },
+                          events: { type: 'array', items: { type: 'string' } },
+                          active: { type: 'boolean' },
+                          createdAt: { type: 'string', format: 'date-time' },
+                          updatedAt: { type: 'string', format: 'date-time' },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          '403': { description: 'Only board admins can manage webhooks' },
+        },
+      },
+      post: {
+        tags: ['Webhooks'],
+        summary: 'Create a webhook for a board (admin only)',
+        security: [bearerAuth],
+        parameters: [{ name: 'boardId', in: 'path', required: true, schema: { type: 'string' } }],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['url', 'events'],
+                properties: {
+                  url: { type: 'string', format: 'uri', description: 'Webhook callback URL (max 500 chars)' },
+                  events: {
+                    type: 'array',
+                    items: { type: 'string' },
+                    description: 'Array of event types to subscribe to',
+                  },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          '201': { description: 'Webhook created (secret returned only on creation)' },
+          '403': { description: 'Only board admins can manage webhooks' },
+          '422': { description: 'Validation error' },
+        },
+      },
+    },
+    '/api/boards/{boardId}/webhooks/{webhookId}': {
+      put: {
+        tags: ['Webhooks'],
+        summary: 'Update a webhook (admin only)',
+        security: [bearerAuth],
+        parameters: [
+          { name: 'boardId', in: 'path', required: true, schema: { type: 'string' } },
+          { name: 'webhookId', in: 'path', required: true, schema: { type: 'string' } },
+        ],
+        requestBody: {
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  url: { type: 'string', format: 'uri' },
+                  events: { type: 'array', items: { type: 'string' } },
+                  active: { type: 'boolean' },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          '200': { description: 'Webhook updated' },
+          '403': { description: 'Only board admins can manage webhooks' },
+          '404': { description: 'Webhook not found' },
+        },
+      },
+      delete: {
+        tags: ['Webhooks'],
+        summary: 'Delete a webhook (admin only)',
+        security: [bearerAuth],
+        parameters: [
+          { name: 'boardId', in: 'path', required: true, schema: { type: 'string' } },
+          { name: 'webhookId', in: 'path', required: true, schema: { type: 'string' } },
+        ],
+        responses: {
+          '200': { description: 'Webhook deleted' },
+          '403': { description: 'Only board admins can manage webhooks' },
+          '404': { description: 'Webhook not found' },
+        },
+      },
+    },
     '/api/lists': {
       post: {
         tags: ['Lists'],
@@ -734,6 +868,43 @@ export const spec = {
         parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
         responses: {
           '200': { description: 'List deleted' },
+          '404': { description: 'List not found' },
+        },
+      },
+    },
+    '/api/lists/{id}/cards': {
+      get: {
+        tags: ['Lists'],
+        summary: 'Get paginated cards for a list',
+        security: [bearerAuth],
+        parameters: [
+          { name: 'id', in: 'path', required: true, schema: { type: 'string' } },
+          { name: 'page', in: 'query', schema: { type: 'integer', default: 1 } },
+          { name: 'limit', in: 'query', schema: { type: 'integer', default: 20, maximum: 100 } },
+        ],
+        responses: {
+          '200': {
+            description: 'Paginated cards for the list',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    ok: { type: 'boolean' },
+                    data: { type: 'array', items: CARD_RESPONSE },
+                    meta: {
+                      type: 'object',
+                      properties: {
+                        page: { type: 'integer' },
+                        limit: { type: 'integer' },
+                        total: { type: 'integer' },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
           '404': { description: 'List not found' },
         },
       },
@@ -1090,6 +1261,298 @@ export const spec = {
         responses: {
           '201': { description: 'Comment created with activity logging', content: { 'application/json': { schema: { type: 'object', properties: { ok: { type: 'boolean' }, data: COMMENT_RESPONSE } } } } },
           '404': { description: 'Card not found' },
+        },
+      },
+    },
+    '/api/admin/activities': {
+      get: {
+        tags: ['Admin'],
+        summary: 'Get global audit log across all boards (admin only)',
+        security: [bearerAuth],
+        parameters: [
+          { name: 'page', in: 'query', schema: { type: 'integer', default: 1 } },
+          { name: 'limit', in: 'query', schema: { type: 'integer', default: 20, maximum: 100 } },
+          { name: 'boardId', in: 'query', schema: { type: 'string' }, description: 'Filter by board ID' },
+          { name: 'action', in: 'query', schema: { type: 'string', enum: ['CREATE', 'UPDATE', 'DELETE', 'MOVE'] } },
+          { name: 'entityType', in: 'query', schema: { type: 'string', enum: ['BOARD', 'LIST', 'CARD', 'COMMENT'] } },
+          { name: 'userId', in: 'query', schema: { type: 'string' }, description: 'Filter by user ID' },
+          { name: 'dateFrom', in: 'query', schema: { type: 'string', format: 'date-time' } },
+          { name: 'dateTo', in: 'query', schema: { type: 'string', format: 'date-time' } },
+        ],
+        responses: {
+          '200': {
+            description: 'Paginated filtered global audit log',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    ok: { type: 'boolean' },
+                    data: {
+                      type: 'array',
+                      items: {
+                        type: 'object',
+                        properties: {
+                          id: { type: 'string' },
+                          boardId: { type: 'string' },
+                          userId: { type: 'string' },
+                          action: { type: 'string', enum: ['CREATE', 'UPDATE', 'DELETE', 'MOVE'] },
+                          entityType: { type: 'string', enum: ['BOARD', 'LIST', 'CARD', 'COMMENT'] },
+                          entityId: { type: 'string' },
+                          metadata: { type: 'object' },
+                          createdAt: { type: 'string', format: 'date-time' },
+                          user: {
+                            type: 'object',
+                            properties: {
+                              id: { type: 'string' },
+                              name: { type: 'string' },
+                              avatar: { type: 'string', nullable: true },
+                            },
+                          },
+                        },
+                      },
+                    },
+                    meta: {
+                      type: 'object',
+                      properties: {
+                        page: { type: 'integer' },
+                        limit: { type: 'integer' },
+                        total: { type: 'integer' },
+                        totalPages: { type: 'integer' },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          '403': { description: 'Admin access required' },
+        },
+      },
+    },
+    '/api/admin/stats': {
+      get: {
+        tags: ['Admin'],
+        summary: 'Get system statistics (admin only)',
+        security: [bearerAuth],
+        responses: {
+          '200': {
+            description: 'System stats',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    ok: { type: 'boolean' },
+                    data: {
+                      type: 'object',
+                      properties: {
+                        users: { type: 'integer' },
+                        boards: { type: 'integer' },
+                        lists: { type: 'integer' },
+                        cards: { type: 'integer' },
+                        comments: { type: 'integer' },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          '403': { description: 'Admin access required' },
+        },
+      },
+    },
+    '/api/admin/users': {
+      get: {
+        tags: ['Admin'],
+        summary: 'List all users (admin only)',
+        security: [bearerAuth],
+        parameters: [
+          { name: 'page', in: 'query', schema: { type: 'integer', default: 1 } },
+          { name: 'limit', in: 'query', schema: { type: 'integer', default: 20, maximum: 100 } },
+        ],
+        responses: {
+          '200': {
+            description: 'Paginated list of users',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    ok: { type: 'boolean' },
+                    data: {
+                      type: 'object',
+                      properties: {
+                        users: {
+                          type: 'array',
+                          items: {
+                            type: 'object',
+                            properties: {
+                              id: { type: 'string' },
+                              email: { type: 'string' },
+                              name: { type: 'string' },
+                              avatar: { type: 'string', nullable: true },
+                              role: { type: 'string', enum: ['USER', 'ADMIN'] },
+                              createdAt: { type: 'string', format: 'date-time' },
+                            },
+                          },
+                        },
+                        total: { type: 'integer' },
+                        page: { type: 'integer' },
+                        limit: { type: 'integer' },
+                        totalPages: { type: 'integer' },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          '403': { description: 'Admin access required' },
+        },
+      },
+    },
+    '/api/admin/users/{id}': {
+      get: {
+        tags: ['Admin'],
+        summary: 'Get user by ID (admin only)',
+        security: [bearerAuth],
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
+        responses: {
+          '200': {
+            description: 'User details',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    ok: { type: 'boolean' },
+                    data: {
+                      type: 'object',
+                      properties: {
+                        id: { type: 'string' },
+                        email: { type: 'string' },
+                        name: { type: 'string' },
+                        avatar: { type: 'string', nullable: true },
+                        role: { type: 'string', enum: ['USER', 'ADMIN'] },
+                        createdAt: { type: 'string', format: 'date-time' },
+                        updatedAt: { type: 'string', format: 'date-time' },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          '403': { description: 'Admin access required' },
+          '404': { description: 'User not found' },
+        },
+      },
+      put: {
+        tags: ['Admin'],
+        summary: 'Update user role (admin only)',
+        security: [bearerAuth],
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['role'],
+                properties: {
+                  role: { type: 'string', enum: ['USER', 'ADMIN'] },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          '200': { description: 'User role updated' },
+          '403': { description: 'Admin access required' },
+          '404': { description: 'User not found' },
+          '422': { description: 'Cannot change own role or invalid role' },
+        },
+      },
+      delete: {
+        tags: ['Admin'],
+        summary: 'Delete a user (admin only, cannot delete self)',
+        security: [bearerAuth],
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
+        responses: {
+          '200': { description: 'User deleted' },
+          '403': { description: 'Admin access required' },
+          '422': { description: 'Cannot delete yourself' },
+        },
+      },
+    },
+    '/api/admin/boards': {
+      get: {
+        tags: ['Admin'],
+        summary: 'List all boards (admin only)',
+        security: [bearerAuth],
+        parameters: [
+          { name: 'page', in: 'query', schema: { type: 'integer', default: 1 } },
+          { name: 'limit', in: 'query', schema: { type: 'integer', default: 20, maximum: 100 } },
+        ],
+        responses: {
+          '200': {
+            description: 'Paginated list of all boards',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    ok: { type: 'boolean' },
+                    data: {
+                      type: 'object',
+                      properties: {
+                        boards: {
+                          type: 'array',
+                          items: {
+                            type: 'object',
+                            properties: {
+                              id: { type: 'string' },
+                              name: { type: 'string' },
+                              description: { type: 'string', nullable: true },
+                              ownerId: { type: 'string' },
+                              createdAt: { type: 'string', format: 'date-time' },
+                              updatedAt: { type: 'string', format: 'date-time' },
+                              _count: {
+                                type: 'object',
+                                properties: {
+                                  lists: { type: 'integer' },
+                                  members: { type: 'integer' },
+                                },
+                              },
+                            },
+                          },
+                        },
+                        total: { type: 'integer' },
+                        page: { type: 'integer' },
+                        limit: { type: 'integer' },
+                        totalPages: { type: 'integer' },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          '403': { description: 'Admin access required' },
+        },
+      },
+    },
+    '/api/admin/boards/{id}': {
+      delete: {
+        tags: ['Admin'],
+        summary: 'Delete any board (admin only)',
+        security: [bearerAuth],
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
+        responses: {
+          '200': { description: 'Board deleted' },
+          '403': { description: 'Admin access required' },
         },
       },
     },

@@ -6,6 +6,7 @@ import { AppError } from '../errors.js';
 import { AddMemberSchema, UpdateMemberRoleSchema } from '../utils/validation.js';
 import { notifyBoard } from '../utils/notifications.js';
 import { logActivity } from '../utils/activity.js';
+import { sendEmail, boardInviteEmail } from '../utils/email.js';
 import type { BoardRole } from '@prisma/client';
 
 const router = Router({ mergeParams: true });
@@ -96,7 +97,14 @@ router.post(
       metadata: { addedUserId: userId, role },
     });
 
-    notifyBoard(boardId, 'member:added', member);
+    notifyBoard(boardId, 'member:added', member, req.user);
+
+    const board = await prisma.board.findUnique({ where: { id: boardId }, select: { name: true } });
+    if (board) {
+      const emailOpts = boardInviteEmail(req.user!.email, board.name, `${process.env.APP_URL || 'http://localhost:4000'}/boards/${boardId}`);
+      sendEmail({ to: user.email, ...emailOpts });
+    }
+
     res.status(201).json({ ok: true, data: member });
   })
 );
@@ -130,7 +138,7 @@ router.put(
       metadata: { targetUserId: member.userId, newRole: role },
     });
 
-    notifyBoard(boardId, 'member:updated', updated);
+    notifyBoard(boardId, 'member:updated', updated, req.user);
     res.json({ ok: true, data: updated });
   })
 );
@@ -172,7 +180,7 @@ router.delete(
       metadata: { removedUserId: member.userId },
     });
 
-    notifyBoard(boardId, 'member:removed', { memberId });
+    notifyBoard(boardId, 'member:removed', { memberId }, req.user);
     res.json({ ok: true, data: { success: true } });
   })
 );

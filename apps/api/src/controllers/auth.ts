@@ -4,6 +4,7 @@ import bcrypt from 'bcryptjs';
 import { prisma } from '../app.js';
 import { authGuard, signToken } from '../middleware/auth.js';
 import { asyncHandler } from '../middleware/error-handler.js';
+import { loginLimiter, registerLimiter } from '../middleware/rate-limit.js';
 import { AppError } from '../errors.js';
 import { z } from 'zod';
 
@@ -42,20 +43,21 @@ async function createRefreshToken(userId: string) {
   return raw;
 }
 
-function respondWithTokens(user: { id: string; email: string; name: string; avatar: string | null }, refreshToken: string) {
-  const token = signToken({ userId: user.id, email: user.email });
+function respondWithTokens(user: { id: string; email: string; name: string; avatar: string | null; role: string }, refreshToken: string) {
+  const token = signToken({ userId: user.id, email: user.email, role: user.role });
   return {
     ok: true,
     data: {
       token,
       refreshToken,
-      user: { id: user.id, email: user.email, name: user.name, avatar: user.avatar },
+      user: { id: user.id, email: user.email, name: user.name, avatar: user.avatar, role: user.role },
     },
   };
 }
 
 router.post(
   '/register',
+  registerLimiter,
   asyncHandler(async (req, res) => {
     const parsed = RegisterSchema.safeParse(req.body);
     if (!parsed.success) {
@@ -73,7 +75,15 @@ router.post(
       data: { email, name, password: hashed },
     });
 
-    const refreshToken = await createRefreshToken(user.id);
+    const adminEmail = process.env.ADMIN_EMAIL;
+    if (adminEmail && email.toLowerCase() === adminEmail.toLowerCase()) {
+      await prisma.user.update({ where: { id: user.id }, data: { role: 'ADMIN' } });
+    }
+
+    const created = await prisma.user.findUniqueOrThrow({ where: { id: user.id } });
+    const refreshToken = await createRefreshToken(created.id);
+
+    res.status(201).json(respondWithTokens(created, refreshToken));
 
     res.status(201).json(respondWithTokens(user, refreshToken));
   })
@@ -81,6 +91,7 @@ router.post(
 
 router.post(
   '/login',
+  loginLimiter,
   asyncHandler(async (req, res) => {
     const parsed = LoginSchema.safeParse(req.body);
     if (!parsed.success) {
@@ -116,7 +127,7 @@ router.post(
 
     const stored = await prisma.refreshToken.findUnique({
       where: { token: hashed },
-      include: { user: { select: { id: true, email: true, name: true, avatar: true } } },
+      include: { user: { select: { id: true, email: true, name: true, avatar: true, role: true } } },
     });
 
     if (!stored || stored.revoked || stored.expiresAt < new Date()) {

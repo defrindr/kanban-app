@@ -5,16 +5,17 @@ interface RateLimitConfig {
   windowMs: number;
   max: number;
   keyPrefix: string;
+  getKey?: (req: Request) => string;
 }
 
-function createRateLimiter({ windowMs, max, keyPrefix }: RateLimitConfig) {
+function createRateLimiter({ windowMs, max, keyPrefix, getKey }: RateLimitConfig) {
   return async (req: Request, res: Response, next: NextFunction) => {
     if (process.env.NODE_ENV === 'test') {
       next();
       return;
     }
     try {
-      const identifier = keyPrefix === 'auth' ? req.ip || 'unknown' : req.user?.userId || req.ip || 'unknown';
+      const identifier = getKey ? getKey(req) : req.user?.userId || req.ip || 'unknown';
       const key = `ratelimit:${keyPrefix}:${identifier}`;
 
       const current = await redis.incr(key);
@@ -49,8 +50,28 @@ export const authLimiter = createRateLimiter({
   keyPrefix: 'auth',
 });
 
+export const loginLimiter = createRateLimiter({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  keyPrefix: 'login',
+  getKey: (req) => req.ip || 'unknown',
+});
+
+export const registerLimiter = createRateLimiter({
+  windowMs: 60 * 60 * 1000,
+  max: 3,
+  keyPrefix: 'register',
+  getKey: (req) => req.ip || 'unknown',
+});
+
 export const apiLimiter = createRateLimiter({
   windowMs: 60 * 1000,
   max: 200,
   keyPrefix: 'api',
+});
+
+export const writeLimiter = createRateLimiter({
+  windowMs: 60 * 1000,
+  max: 60,
+  keyPrefix: 'write',
 });

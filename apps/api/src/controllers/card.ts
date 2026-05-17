@@ -8,9 +8,9 @@ import {
 } from '../utils/validation.js';
 import { notifyBoard } from '../utils/notifications.js';
 import { logActivity } from '../utils/activity.js';
-import { upload, UPLOAD_DIR } from '../middleware/upload.js';
-import { unlinkSync } from 'fs';
-import { join } from 'path';
+import { upload } from '../middleware/upload.js';
+import { storage } from '../utils/storage.js';
+import { sendEmail, assignmentNotificationEmail, commentNotificationEmail } from '../utils/email.js';
 import crypto from 'crypto';
 import type { Prisma } from '@prisma/client';
 
@@ -105,7 +105,7 @@ router.post(
       entityId: card.id,
     });
 
-    notifyBoard(list.boardId, 'card:created', card);
+    notifyBoard(list.boardId, 'card:created', card, req.user);
     res.status(201).json({ ok: true, data: card });
   })
 );
@@ -151,7 +151,7 @@ router.put(
       entityId: id,
     });
 
-    notifyBoard(boardId, 'card:updated', card);
+    notifyBoard(boardId, 'card:updated', card, req.user);
     res.json({ ok: true, data: card });
   })
 );
@@ -185,7 +185,7 @@ router.post(
       metadata: { toListId, newPosition },
     });
 
-    notifyBoard(boardId, 'card:moved', { card, fromListId, toListId, newPosition });
+    notifyBoard(boardId, 'card:moved', { card, fromListId, toListId, newPosition }, req.user);
     res.json({ ok: true, data: card });
   })
 );
@@ -236,7 +236,7 @@ router.post(
       data: { cardId: id, name, color },
     });
 
-    notifyBoard(boardId, 'card:label:added', { cardId: id, label });
+    notifyBoard(boardId, 'card:label:added', { cardId: id, label }, req.user);
     res.status(201).json({ ok: true, data: label });
   })
 );
@@ -265,7 +265,7 @@ router.delete(
     await prisma.cardLabel.delete({ where: { id: labelId } });
 
     const list = await prisma.card.findUnique({ where: { id }, select: { listId: true } });
-    notifyBoard(boardId, 'card:label:removed', { cardId: id, labelId, listId: list?.listId });
+    notifyBoard(boardId, 'card:label:removed', { cardId: id, labelId, listId: list?.listId }, req.user);
     res.json({ ok: true, data: { success: true } });
   })
 );
@@ -289,7 +289,17 @@ router.post(
       data: { cardId: id, userId },
     });
 
-    notifyBoard(boardId, 'card:assignee:added', { cardId: id, assignee });
+    notifyBoard(boardId, 'card:assignee:added', { cardId: id, assignee }, req.user);
+
+    const [assignedUser, card] = await Promise.all([
+      prisma.user.findUnique({ where: { id: userId }, select: { email: true } }),
+      prisma.card.findUnique({ where: { id }, select: { title: true, list: { select: { board: { select: { name: true } } } } } }),
+    ]);
+    if (assignedUser && card) {
+      const opts = assignmentNotificationEmail(req.user!.email, card.title, card.list.board.name, `${process.env.APP_URL || 'http://localhost:4000'}/boards/${boardId}/cards/${id}`);
+      sendEmail({ to: assignedUser.email, ...opts });
+    }
+
     res.status(201).json({ ok: true, data: assignee });
   })
 );
@@ -309,19 +319,33 @@ router.post(
 
     const boardId2 = await findBoardId(id);
     if (boardId2) {
-      notifyBoard(boardId2, 'card:comment:added', { cardId: id, comment });
+      notifyBoard(boardId2, 'card:comment:added', { cardId: id, comment }, req.user);
+
+      const [cardInfo, assignees] = await Promise.all([
+        prisma.card.findUnique({ where: { id }, select: { title: true, list: { select: { board: { select: { name: true } } } } } }),
+        prisma.cardAssignee.findMany({ where: { cardId: id }, include: { user: { select: { email: true } } } }),
+      ]);
+      if (cardInfo) {
+        const emails = assignees
+          .map(a => a.user.email)
+          .filter(e => e !== req.user!.email);
+        if (emails.length > 0) {
+          const opts = commentNotificationEmail(req.user!.email, cardInfo.title, cardInfo.list.board.name, content, `${process.env.APP_URL || 'http://localhost:4000'}/boards/${boardId2}/cards/${id}`);
+          emails.forEach(to => sendEmail({ to, ...opts }));
+        }
+      }
     }
     res.status(201).json({ ok: true, data: comment });
   })
 );
 
 router.delete(
-  '/:id/assignees/:assigneeId',
+  '/:id/assignees/:userId',
   asyncHandler(async (req, res) => {
-    const { id, assigneeId } = req.params;
+    const { id, userId } = req.params;
 
-    const assignee = await prisma.cardAssignee.findUnique({ where: { id: assigneeId } });
-    if (!assignee || assignee.cardId !== id) {
+    const assignee = await prisma.cardAssignee.findFirst({ where: { cardId: id, userId } });
+    if (!assignee) {
       return res.status(404).json({
         ok: false,
         error: { code: 'NOT_FOUND', message: 'Assignee not found' },
@@ -336,9 +360,9 @@ router.delete(
       });
     }
 
-    await prisma.cardAssignee.delete({ where: { id: assigneeId } });
+    await prisma.cardAssignee.delete({ where: { id: assignee.id } });
 
-    notifyBoard(boardId, 'card:assignee:removed', { cardId: id, assigneeId });
+    notifyBoard(boardId, 'card:assignee:removed', { cardId: id, userId }, req.user);
     res.json({ ok: true, data: { success: true } });
   })
 );
@@ -372,10 +396,14 @@ router.post(
       });
     }
 
+    const fileKey = `cards/${id}/${crypto.randomUUID()}-${req.file.originalname}`;
+    const url = await storage.save(fileKey, req.file.buffer, req.file.mimetype);
+
     const attachment = {
       id: crypto.randomUUID(),
       name: req.file.originalname,
-      url: `/uploads/${req.file.filename}`,
+      url,
+      key: fileKey,
       type: req.file.mimetype,
       size: req.file.size,
       createdAt: new Date().toISOString(),
@@ -396,7 +424,7 @@ router.post(
       metadata: { attachmentName: req.file.originalname } as Prisma.InputJsonValue,
     });
 
-    notifyBoard(boardId, 'card:attachment:added', { cardId: id, attachment });
+    notifyBoard(boardId, 'card:attachment:added', { cardId: id, attachment }, req.user);
     res.status(201).json({ ok: true, data: attachment });
   })
 );
@@ -438,10 +466,10 @@ router.delete(
       data: { attachments: remaining as Prisma.JsonArray },
     });
 
-    try {
-      const filename = (attachment.url as string).replace('/uploads/', '');
-      unlinkSync(join(UPLOAD_DIR, filename));
-    } catch {}
+    const fileKey = attachment.key as string;
+    if (fileKey) {
+      await storage.delete(fileKey);
+    }
 
     await logActivity({
       boardId,
@@ -452,7 +480,7 @@ router.delete(
       metadata: { attachmentName: attachment.name } as Prisma.InputJsonValue,
     });
 
-    notifyBoard(boardId, 'card:attachment:removed', { cardId: id, attachmentId });
+    notifyBoard(boardId, 'card:attachment:removed', { cardId: id, attachmentId }, req.user);
     res.json({ ok: true, data: { success: true } });
   })
 );
