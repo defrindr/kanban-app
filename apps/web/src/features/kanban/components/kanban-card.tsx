@@ -94,13 +94,23 @@ export function KanbanCard({ card, onClick, isSelected, onUpdate }: KanbanCardPr
           )}
 
           <div className="flex items-center gap-3 flex-wrap">
-            {card.dueDate && (
-              <span className={`inline-flex items-center gap-1 text-[11px] font-medium ${isOverdue ? 'text-red-500' : 'text-gray-400 dark:text-gray-500'}`}>
+            {(card.startDate || card.dueDate) && (
+              <span className={`inline-flex items-center gap-1 text-[11px] font-medium ${card.dueDate && new Date(card.dueDate) < new Date() ? 'text-red-500' : 'text-gray-400 dark:text-gray-500'}`}>
                 <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                {new Date(card.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                {isOverdue && ' • Overdue'}
+                {card.startDate && card.dueDate ? (
+                  <>
+                    {new Date(card.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} → {new Date(card.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                  </>
+                ) : card.dueDate ? (
+                  <>
+                    {new Date(card.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                    {isOverdue && ' • Overdue'}
+                  </>
+                ) : (
+                  <>{new Date(card.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</>
+                )}
               </span>
             )}
 

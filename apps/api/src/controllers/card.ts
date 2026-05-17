@@ -117,7 +117,7 @@ router.put(
   validateBody(UpdateCardSchema),
   asyncHandler(async (req, res) => {
     const { id } = req.params;
-    const { title, description, labels, assignees, position, dueDate, coverColor, archived, checklist, attachments } = req.body;
+    const { title, description, labels, assignees, position, startDate, dueDate, coverColor, archived, checklist, attachments } = req.body;
 
     const boardId = await findBoardId(id);
     if (!boardId) {
@@ -137,6 +137,7 @@ router.put(
     if (archived !== undefined) data.archived = archived;
     if (checklist !== undefined) data.checklist = checklist;
     if (attachments !== undefined) data.attachments = attachments;
+    if (startDate !== undefined) data.startDate = startDate ? new Date(startDate) : null;
     if (dueDate !== undefined) data.dueDate = dueDate ? new Date(dueDate) : null;
 
     const card = await prisma.card.update({

@@ -96,6 +96,7 @@ model Card {
   position    Float
   labels      String[]
   assignees   String[]
+  startDate   DateTime?
   dueDate     DateTime?
   coverColor  String?
   archived    Boolean       @default(false)

@@ -40,6 +40,7 @@ export const UpdateCardSchema = z.object({
   description: z.string().max(2000).optional(),
   labels: z.array(z.string()).optional(),
   assignees: z.array(z.string()).optional(),
+  startDate: z.string().nullable().optional(),
   dueDate: z.string().nullable().optional(),
   coverColor: z.string().nullable().optional(),
   archived: z.boolean().optional(),

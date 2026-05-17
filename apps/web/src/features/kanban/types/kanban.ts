@@ -49,6 +49,7 @@ export const CardSchema = z.object({
   comments: z.array(CommentSchema),
   checklist: z.array(ChecklistItemSchema).optional(),
   attachments: z.array(AttachmentSchema).optional(),
+  startDate: z.string().optional(),
   dueDate: z.string().optional(),
   coverColor: z.string().optional(),
   archived: z.boolean().optional(),

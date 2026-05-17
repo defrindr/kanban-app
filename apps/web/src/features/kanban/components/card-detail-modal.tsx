@@ -183,18 +183,34 @@ export function CardDetailModal({ card, onClose, onAddComment, onUpdateCard, onT
                 </div>
               )}
 
-              {/* Due Date */}
-              <div>
-                <h4 className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2">Due Date</h4>
-                <div className="flex items-center gap-2">
-                  <input type="date" value={card.dueDate ? card.dueDate.split('T')[0] : ''}
-                    onChange={(e) => onUpdateCard?.(card.id, { dueDate: e.target.value ? new Date(e.target.value).toISOString() : null })}
-                    className="px-3 py-2 text-sm bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white dark:[color-scheme:dark]" />
-                  {card.dueDate && (
-                    <button onClick={() => onUpdateCard?.(card.id, { dueDate: null })} className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">
-                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
-                    </button>
-                  )}
+              {/* Start Date & Due Date */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <h4 className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2">Start Date</h4>
+                  <div className="flex items-center gap-2">
+                    <input type="date" value={card.startDate ? card.startDate.split('T')[0] : ''}
+                      onChange={(e) => onUpdateCard?.(card.id, { startDate: e.target.value ? new Date(e.target.value).toISOString() : null })}
+                      className="px-3 py-2 text-sm bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white dark:[color-scheme:dark]" />
+                    {card.startDate && (
+                      <button onClick={() => onUpdateCard?.(card.id, { startDate: null })} className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                <div>
+                  <h4 className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2">Due Date</h4>
+                  <div className="flex items-center gap-2">
+                    <input type="date" value={card.dueDate ? card.dueDate.split('T')[0] : ''}
+                      onChange={(e) => onUpdateCard?.(card.id, { dueDate: e.target.value ? new Date(e.target.value).toISOString() : null })}
+                      className="px-3 py-2 text-sm bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white dark:[color-scheme:dark]" />
+                    {card.dueDate && (
+                      <button onClick={() => onUpdateCard?.(card.id, { dueDate: null })} className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
 
