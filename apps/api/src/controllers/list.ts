@@ -10,7 +10,9 @@ import { cacheDel } from '../utils/cache.js';
 const CARD_INCLUDE = {
   comments: { include: { user: { select: { id: true, name: true, avatar: true } } } },
   cardLabels: true,
-  cardAssignees: { include: { user: { select: { id: true, email: true, name: true, avatar: true } } } },
+  cardAssignees: {
+    include: { user: { select: { id: true, email: true, name: true, avatar: true } } },
+  },
 };
 
 const router = Router();

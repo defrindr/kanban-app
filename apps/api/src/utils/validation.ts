@@ -5,7 +5,12 @@ export const CuidSchema = z.string().cuid();
 
 export const PaginationSchema = z.object({
   page: z.coerce.number().int().min(PAGINATION.MIN_PAGE).default(PAGINATION.DEFAULT_PAGE),
-  limit: z.coerce.number().int().min(PAGINATION.MIN_PAGE).max(PAGINATION.MAX_LIMIT).default(PAGINATION.DEFAULT_LIMIT),
+  limit: z.coerce
+    .number()
+    .int()
+    .min(PAGINATION.MIN_PAGE)
+    .max(PAGINATION.MAX_LIMIT)
+    .default(PAGINATION.DEFAULT_LIMIT),
 });
 
 export const CreateBoardSchema = z.object({
@@ -31,7 +36,10 @@ export const UpdateListSchema = z.object({
 
 export const CreateCardSchema = z.object({
   listId: CuidSchema,
-  title: z.string().min(FIELD_LENGTHS.CARD_TITLE_MIN, 'Title is required').max(FIELD_LENGTHS.CARD_TITLE_MAX),
+  title: z
+    .string()
+    .min(FIELD_LENGTHS.CARD_TITLE_MIN, 'Title is required')
+    .max(FIELD_LENGTHS.CARD_TITLE_MAX),
   description: z.string().max(FIELD_LENGTHS.CARD_DESCRIPTION_MAX).optional(),
   position: z.number().optional(),
 });
@@ -46,7 +54,18 @@ export const UpdateCardSchema = z.object({
   coverColor: z.string().nullable().optional(),
   archived: z.boolean().optional(),
   checklist: z.array(z.object({ id: z.string(), text: z.string(), done: z.boolean() })).optional(),
-  attachments: z.array(z.object({ id: z.string(), name: z.string(), url: z.string(), type: z.string(), size: z.number().optional(), createdAt: z.string() })).optional(),
+  attachments: z
+    .array(
+      z.object({
+        id: z.string(),
+        name: z.string(),
+        url: z.string(),
+        type: z.string(),
+        size: z.number().optional(),
+        createdAt: z.string(),
+      })
+    )
+    .optional(),
 });
 
 export const MoveCardSchema = z.object({
@@ -58,7 +77,10 @@ export const MoveCardSchema = z.object({
 
 export const CreateCardLabelSchema = z.object({
   name: z.string().min(FIELD_LENGTHS.LABEL_NAME_MIN).max(FIELD_LENGTHS.LABEL_NAME_MAX),
-  color: z.string().regex(/^#[0-9a-fA-F]{6}$/).default('#3B82F6'),
+  color: z
+    .string()
+    .regex(/^#[0-9a-fA-F]{6}$/)
+    .default('#3B82F6'),
 });
 
 export const DeleteCardLabelSchema = z.object({
@@ -100,7 +122,12 @@ export const CardSearchSchema = z.object({
   dueBefore: z.string().optional(),
   dueAfter: z.string().optional(),
   page: z.coerce.number().int().min(PAGINATION.MIN_PAGE).default(PAGINATION.DEFAULT_PAGE),
-  limit: z.coerce.number().int().min(PAGINATION.MIN_PAGE).max(PAGINATION.MAX_LIMIT).default(PAGINATION.DEFAULT_LIMIT),
+  limit: z.coerce
+    .number()
+    .int()
+    .min(PAGINATION.MIN_PAGE)
+    .max(PAGINATION.MAX_LIMIT)
+    .default(PAGINATION.DEFAULT_LIMIT),
 });
 
 export const DeleteCardAssigneeSchema = z.object({

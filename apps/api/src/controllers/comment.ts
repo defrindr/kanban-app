@@ -74,28 +74,45 @@ router.post(
       action: 'CREATE',
       entityType: 'COMMENT',
       entityId: comment.id,
-      metadata: { entityName: card.title, content: content.slice(0, ACTIVITY_METADATA.CONTENT_PREVIEW_LENGTH) },
+      metadata: {
+        entityName: card.title,
+        content: content.slice(0, ACTIVITY_METADATA.CONTENT_PREVIEW_LENGTH),
+      },
     });
 
     notifyBoard(card.list.boardId, 'comment:created', comment, req.user);
 
     const [cardInfo, assignees] = await Promise.all([
-      prisma.card.findUnique({ where: { id: cardId }, select: { title: true, list: { select: { board: { select: { name: true } } } } } }),
-      prisma.cardAssignee.findMany({ where: { cardId }, include: { user: { select: { email: true, id: true } } } }),
+      prisma.card.findUnique({
+        where: { id: cardId },
+        select: { title: true, list: { select: { board: { select: { name: true } } } } },
+      }),
+      prisma.cardAssignee.findMany({
+        where: { cardId },
+        include: { user: { select: { email: true, id: true } } },
+      }),
     ]);
     if (cardInfo) {
       const commenter = req.user!.email.split('@')[0];
-      for (const a of assignees
-        .filter(a => a.userId !== req.user!.userId)) {
-          const msg = `${commenter} commented on "${cardInfo.title}"`;
-          const notif = addNotification(a.userId, { userId: a.userId, type: 'comment', message: msg, read: false });
-          notifyUser(a.userId, 'notification:new', notif);
-        }
-      const emails = assignees
-        .map(a => a.user.email)
-        .filter(e => e !== req.user!.email);
+      for (const a of assignees.filter((a) => a.userId !== req.user!.userId)) {
+        const msg = `${commenter} commented on "${cardInfo.title}"`;
+        const notif = addNotification(a.userId, {
+          userId: a.userId,
+          type: 'comment',
+          message: msg,
+          read: false,
+        });
+        notifyUser(a.userId, 'notification:new', notif);
+      }
+      const emails = assignees.map((a) => a.user.email).filter((e) => e !== req.user!.email);
       if (emails.length > 0) {
-        const opts = commentNotificationEmail(req.user!.email, cardInfo.title, cardInfo.list.board.name, content, `${process.env.APP_URL || 'http://localhost:4000'}/boards/${card.list.boardId}/cards/${cardId}`);
+        const opts = commentNotificationEmail(
+          req.user!.email,
+          cardInfo.title,
+          cardInfo.list.board.name,
+          content,
+          `${process.env.APP_URL || 'http://localhost:4000'}/boards/${card.list.boardId}/cards/${cardId}`
+        );
         for (const to of emails) void sendEmail({ to, ...opts });
       }
     }

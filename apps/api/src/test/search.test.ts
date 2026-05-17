@@ -24,13 +24,21 @@ beforeAll(async () => {
   const c1 = await request(app)
     .post('/api/cards')
     .set('Authorization', `Bearer ${token}`)
-    .send({ listId, title: 'Fix login bug', description: 'Users cannot login with special characters' });
+    .send({
+      listId,
+      title: 'Fix login bug',
+      description: 'Users cannot login with special characters',
+    });
   card1Id = c1.body.data.id;
 
   const c2 = await request(app)
     .post('/api/cards')
     .set('Authorization', `Bearer ${token}`)
-    .send({ listId, title: 'Add payment integration', description: 'Integrate Stripe for payments' });
+    .send({
+      listId,
+      title: 'Add payment integration',
+      description: 'Integrate Stripe for payments',
+    });
   card2Id = c2.body.data.id;
 
   await prisma.card.update({
@@ -50,9 +58,7 @@ afterAll(async () => {
 describe('Search', () => {
   describe('Board Search', () => {
     it('lists all boards without query', async () => {
-      const res = await request(app)
-        .get('/api/boards')
-        .set('Authorization', `Bearer ${token}`);
+      const res = await request(app).get('/api/boards').set('Authorization', `Bearer ${token}`);
       expect(res.status).toBe(200);
       expect(res.body.data.length).toBeGreaterThanOrEqual(1);
     });
@@ -143,8 +149,7 @@ describe('Search', () => {
     });
 
     it('requires auth', async () => {
-      const res = await request(app)
-        .get(`/api/cards/search?boardId=${boardId}`);
+      const res = await request(app).get(`/api/cards/search?boardId=${boardId}`);
       expect(res.status).toBe(401);
     });
   });

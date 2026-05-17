@@ -1,4 +1,8 @@
-import { boardInviteEmail, commentNotificationEmail, assignmentNotificationEmail } from '../utils/email.js';
+import {
+  boardInviteEmail,
+  commentNotificationEmail,
+  assignmentNotificationEmail,
+} from '../utils/email.js';
 
 describe('Email Templates', () => {
   it('should generate board invite email', () => {
@@ -10,7 +14,13 @@ describe('Email Templates', () => {
   });
 
   it('should generate comment notification email', () => {
-    const result = commentNotificationEmail('Bob', 'Fix Login', 'Project X', 'Great work!', 'http://localhost:4000/boards/abc/cards/123');
+    const result = commentNotificationEmail(
+      'Bob',
+      'Fix Login',
+      'Project X',
+      'Great work!',
+      'http://localhost:4000/boards/abc/cards/123'
+    );
     expect(result.subject).toBe('Bob commented on Fix Login');
     expect(result.html).toContain('Bob');
     expect(result.html).toContain('Fix Login');
@@ -20,7 +30,12 @@ describe('Email Templates', () => {
   });
 
   it('should generate assignment notification email', () => {
-    const result = assignmentNotificationEmail('Charlie', 'Implement Auth', 'My Board', 'http://localhost:4000/boards/abc/cards/123');
+    const result = assignmentNotificationEmail(
+      'Charlie',
+      'Implement Auth',
+      'My Board',
+      'http://localhost:4000/boards/abc/cards/123'
+    );
     expect(result.subject).toBe('You were assigned to Implement Auth');
     expect(result.html).toContain('Charlie');
     expect(result.html).toContain('Implement Auth');

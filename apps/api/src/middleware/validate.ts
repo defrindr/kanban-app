@@ -10,14 +10,7 @@ export const validateBody = <T>(schema: ZodSchema<T>) => {
       next();
     } catch (err) {
       if (err instanceof ZodError) {
-        next(
-          new AppError(
-            'VALIDATION_FAILED',
-            'Request body is invalid',
-            422,
-            err.flatten()
-          )
-        );
+        next(new AppError('VALIDATION_FAILED', 'Request body is invalid', 422, err.flatten()));
         return;
       }
       next(err);
@@ -33,14 +26,7 @@ export const validateParams = <T>(schema: ZodSchema<T>) => {
       next();
     } catch (err) {
       if (err instanceof ZodError) {
-        next(
-          new AppError(
-            'INVALID_PAYLOAD',
-            'URL parameters are invalid',
-            400,
-            err.flatten()
-          )
-        );
+        next(new AppError('INVALID_PAYLOAD', 'URL parameters are invalid', 400, err.flatten()));
         return;
       }
       next(err);
@@ -56,14 +42,7 @@ export const validateQuery = <T>(schema: ZodSchema<T>) => {
       next();
     } catch (err) {
       if (err instanceof ZodError) {
-        next(
-          new AppError(
-            'INVALID_PAYLOAD',
-            'Query parameters are invalid',
-            400,
-            err.flatten()
-          )
-        );
+        next(new AppError('INVALID_PAYLOAD', 'Query parameters are invalid', 400, err.flatten()));
         return;
       }
       next(err);

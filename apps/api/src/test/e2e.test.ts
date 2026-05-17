@@ -135,7 +135,9 @@ describe('E2E: Card Workflow', () => {
       .set('Authorization', `Bearer ${ownerToken}`);
     expect(res.status).toBe(200);
     expect(res.body.data.length).toBeGreaterThanOrEqual(1);
-    expect(res.body.data.some((c: { title: string }) => c.title.toLowerCase().includes('auth'))).toBe(true);
+    expect(
+      res.body.data.some((c: { title: string }) => c.title.toLowerCase().includes('auth'))
+    ).toBe(true);
   });
 
   it('searches cards by label', async () => {
@@ -290,9 +292,7 @@ describe('E2E: Auth Refresh Flow', () => {
   });
 
   it('exchanges refresh token for new tokens', async () => {
-    const res = await request(app)
-      .post('/api/auth/refresh')
-      .send({ refreshToken });
+    const res = await request(app).post('/api/auth/refresh').send({ refreshToken });
     expect(res.status).toBe(200);
     expect(res.body.data.token).toBeDefined();
     expect(res.body.data.refreshToken).not.toBe(refreshToken);
@@ -301,14 +301,10 @@ describe('E2E: Auth Refresh Flow', () => {
   });
 
   it('logout revokes refresh token', async () => {
-    const res = await request(app)
-      .post('/api/auth/logout')
-      .send({ refreshToken });
+    const res = await request(app).post('/api/auth/logout').send({ refreshToken });
     expect(res.status).toBe(200);
 
-    const res2 = await request(app)
-      .post('/api/auth/refresh')
-      .send({ refreshToken });
+    const res2 = await request(app).post('/api/auth/refresh').send({ refreshToken });
     expect(res2.status).toBe(401);
   });
 });
@@ -360,7 +356,9 @@ describe('E2E: Error Scenarios', () => {
     const endpoints = [
       request(app).get('/api/boards').set('Authorization', `Bearer ${ownerToken}`),
       request(app).get(`/api/boards/${boardId}`).set('Authorization', `Bearer ${ownerToken}`),
-      request(app).get(`/api/boards/${boardId}/activities`).set('Authorization', `Bearer ${ownerToken}`),
+      request(app)
+        .get(`/api/boards/${boardId}/activities`)
+        .set('Authorization', `Bearer ${ownerToken}`),
     ];
     const results = await Promise.all(endpoints);
     for (const res of results) {
@@ -386,9 +384,7 @@ describe('E2E: Board Deletion', () => {
   });
 
   it('board not listed', async () => {
-    const res = await request(app)
-      .get('/api/boards')
-      .set('Authorization', `Bearer ${ownerToken}`);
+    const res = await request(app).get('/api/boards').set('Authorization', `Bearer ${ownerToken}`);
     expect(res.body.data.every((b: { id: string }) => b.id !== boardId)).toBe(true);
   });
 });

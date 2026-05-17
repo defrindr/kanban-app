@@ -7,14 +7,20 @@ const testEmail = `validation-test-${Date.now()}@test.com`;
 
 describe('API Versioning', () => {
   it('serves auth at both prefixes', async () => {
-    const res1 = await request(app).post('/api/v1/auth/login').send({ email: 'none@test.com', password: 'x' });
-    const res2 = await request(app).post('/api/auth/login').send({ email: 'none@test.com', password: 'x' });
+    const res1 = await request(app)
+      .post('/api/v1/auth/login')
+      .send({ email: 'none@test.com', password: 'x' });
+    const res2 = await request(app)
+      .post('/api/auth/login')
+      .send({ email: 'none@test.com', password: 'x' });
     expect(res1.status).toBe(401);
     expect(res2.status).toBe(401);
   });
 
   it('adds version headers on v1 prefix', async () => {
-    const res = await request(app).post('/api/v1/auth/login').send({ email: 'nope@test.com', password: 'x' });
+    const res = await request(app)
+      .post('/api/v1/auth/login')
+      .send({ email: 'nope@test.com', password: 'x' });
     expect(res.headers['x-api-version']).toBe('1');
   });
 });

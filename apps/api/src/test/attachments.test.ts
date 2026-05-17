@@ -83,8 +83,7 @@ describe('Card Attachments', () => {
   });
 
   it('rejects delete without auth', async () => {
-    const res = await request(app)
-      .delete(`/api/cards/${cardId}/attachments/${attachmentId}`);
+    const res = await request(app).delete(`/api/cards/${cardId}/attachments/${attachmentId}`);
 
     expect(res.status).toBe(401);
   });

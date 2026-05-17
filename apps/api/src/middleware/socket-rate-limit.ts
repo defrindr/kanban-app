@@ -26,7 +26,10 @@ export async function checkSocketRateLimit(socket: Socket, event: string): Promi
     }
 
     if (eventCount > config.maxPerEvent || totalCount > config.maxTotal) {
-      socket.emit('error', { ok: false, error: { code: 'RATE_LIMITED', message: 'Too many requests' } });
+      socket.emit('error', {
+        ok: false,
+        error: { code: 'RATE_LIMITED', message: 'Too many requests' },
+      });
       return false;
     }
 

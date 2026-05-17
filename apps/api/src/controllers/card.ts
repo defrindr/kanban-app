@@ -3,15 +3,23 @@ import { prisma } from '../app.js';
 import { validateBody, validateQuery } from '../middleware/validate.js';
 import { asyncHandler } from '../middleware/error-handler.js';
 import {
-  CreateCardSchema, UpdateCardSchema, MoveCardSchema,
-  CreateCardLabelSchema, AddCardAssigneeSchema, CardSearchSchema,
+  CreateCardSchema,
+  UpdateCardSchema,
+  MoveCardSchema,
+  CreateCardLabelSchema,
+  AddCardAssigneeSchema,
+  CardSearchSchema,
 } from '../utils/validation.js';
 import { notifyBoard, notifyUser } from '../utils/notifications.js';
 import { addNotification } from '../utils/notification-store.js';
 import { logActivity } from '../utils/activity.js';
 import { upload } from '../middleware/upload.js';
 import { storage } from '../utils/storage.js';
-import { sendEmail, assignmentNotificationEmail, commentNotificationEmail } from '../utils/email.js';
+import {
+  sendEmail,
+  assignmentNotificationEmail,
+  commentNotificationEmail,
+} from '../utils/email.js';
 import { FIELD_LENGTHS, DEFAULTS } from '../config/constants.js';
 import crypto from 'crypto';
 import type { Prisma } from '@prisma/client';
@@ -30,25 +38,30 @@ router.get(
   '/search',
   validateQuery(CardSearchSchema),
   asyncHandler(async (req, res) => {
-    const {
-      boardId, q, listId, labels, assigneeId,
-      archived, dueBefore, dueAfter, page, limit,
-    } = req.query as unknown as {
-      boardId?: string; q?: string; listId?: string; labels?: string;
-      assigneeId?: string; archived?: boolean;
-      dueBefore?: string; dueAfter?: string;
-      page: number; limit: number;
-    };
+    const { boardId, q, listId, labels, assigneeId, archived, dueBefore, dueAfter, page, limit } =
+      req.query as unknown as {
+        boardId?: string;
+        q?: string;
+        listId?: string;
+        labels?: string;
+        assigneeId?: string;
+        archived?: boolean;
+        dueBefore?: string;
+        dueAfter?: string;
+        page: number;
+        limit: number;
+      };
 
     const skip = (page - 1) * limit;
 
     const where: Record<string, unknown> = {};
     if (boardId) where.list = { boardId };
 
-    if (q) where.OR = [
-      { title: { contains: q, mode: 'insensitive' } },
-      { description: { contains: q, mode: 'insensitive' } },
-    ];
+    if (q)
+      where.OR = [
+        { title: { contains: q, mode: 'insensitive' } },
+        { description: { contains: q, mode: 'insensitive' } },
+      ];
     if (listId) where.listId = listId;
     if (assigneeId) where.cardAssignees = { some: { userId: assigneeId } };
     if (archived !== undefined) where.archived = archived;
@@ -69,7 +82,9 @@ router.get(
           list: { select: { id: true, title: true, boardId: true } },
           comments: { include: { user: { select: { id: true, name: true, avatar: true } } } },
           cardLabels: true,
-          cardAssignees: { include: { user: { select: { id: true, email: true, name: true, avatar: true } } } },
+          cardAssignees: {
+            include: { user: { select: { id: true, email: true, name: true, avatar: true } } },
+          },
         },
         orderBy: { createdAt: 'desc' },
       }),
@@ -94,10 +109,23 @@ router.post(
       });
     }
 
-     const card = await prisma.card.create({
-       data: { listId, title, description, position: position || DEFAULTS.CARD_POSITION, labels: [], assignees: [] },
-       include: { comments: { include: { user: { select: { id: true, name: true, avatar: true } } } }, cardLabels: true, cardAssignees: { include: { user: { select: { id: true, email: true, name: true, avatar: true } } } } },
-     });
+    const card = await prisma.card.create({
+      data: {
+        listId,
+        title,
+        description,
+        position: position || DEFAULTS.CARD_POSITION,
+        labels: [],
+        assignees: [],
+      },
+      include: {
+        comments: { include: { user: { select: { id: true, name: true, avatar: true } } } },
+        cardLabels: true,
+        cardAssignees: {
+          include: { user: { select: { id: true, email: true, name: true, avatar: true } } },
+        },
+      },
+    });
 
     await logActivity({
       boardId: list.boardId,
@@ -118,7 +146,19 @@ router.put(
   validateBody(UpdateCardSchema),
   asyncHandler(async (req, res) => {
     const { id } = req.params;
-    const { title, description, labels, assignees, position, startDate, dueDate, coverColor, archived, checklist, attachments } = req.body;
+    const {
+      title,
+      description,
+      labels,
+      assignees,
+      position,
+      startDate,
+      dueDate,
+      coverColor,
+      archived,
+      checklist,
+      attachments,
+    } = req.body;
 
     const boardId = await findBoardId(id);
     if (!boardId) {
@@ -144,7 +184,13 @@ router.put(
     const card = await prisma.card.update({
       where: { id },
       data,
-      include: { comments: { include: { user: { select: { id: true, name: true, avatar: true } } } }, cardLabels: true, cardAssignees: { include: { user: { select: { id: true, email: true, name: true, avatar: true } } } } },
+      include: {
+        comments: { include: { user: { select: { id: true, name: true, avatar: true } } } },
+        cardLabels: true,
+        cardAssignees: {
+          include: { user: { select: { id: true, email: true, name: true, avatar: true } } },
+        },
+      },
     });
 
     await logActivity({
@@ -178,7 +224,13 @@ router.post(
     const card = await prisma.card.update({
       where: { id: cardId },
       data: { listId: toListId, position: newPosition },
-      include: { comments: { include: { user: { select: { id: true, name: true, avatar: true } } } }, cardLabels: true, cardAssignees: { include: { user: { select: { id: true, email: true, name: true, avatar: true } } } } },
+      include: {
+        comments: { include: { user: { select: { id: true, name: true, avatar: true } } } },
+        cardLabels: true,
+        cardAssignees: {
+          include: { user: { select: { id: true, email: true, name: true, avatar: true } } },
+        },
+      },
     });
 
     const [fromList, toList] = await Promise.all([
@@ -285,7 +337,12 @@ router.delete(
     await prisma.cardLabel.delete({ where: { id: labelId } });
 
     const list = await prisma.card.findUnique({ where: { id }, select: { listId: true } });
-    notifyBoard(boardId, 'card:label:removed', { cardId: id, labelId, listId: list?.listId }, req.user);
+    notifyBoard(
+      boardId,
+      'card:label:removed',
+      { cardId: id, labelId, listId: list?.listId },
+      req.user
+    );
     res.json({ ok: true, data: { success: true } });
   })
 );
@@ -313,14 +370,27 @@ router.post(
 
     const [assignedUser, card] = await Promise.all([
       prisma.user.findUnique({ where: { id: userId }, select: { email: true, name: true } }),
-      prisma.card.findUnique({ where: { id }, select: { title: true, list: { select: { board: { select: { name: true } } } } } }),
+      prisma.card.findUnique({
+        where: { id },
+        select: { title: true, list: { select: { board: { select: { name: true } } } } },
+      }),
     ]);
     if (assignedUser && card) {
       const msg = `${req.user!.email.split('@')[0]} assigned you to "${card.title}"`;
-      const notif = addNotification(userId, { userId, type: 'assignment', message: msg, read: false });
+      const notif = addNotification(userId, {
+        userId,
+        type: 'assignment',
+        message: msg,
+        read: false,
+      });
       notifyUser(userId, 'notification:new', notif);
 
-      const opts = assignmentNotificationEmail(req.user!.email, card.title, card.list.board.name, `${process.env.APP_URL || 'http://localhost:4000'}/boards/${boardId}/cards/${id}`);
+      const opts = assignmentNotificationEmail(
+        req.user!.email,
+        card.title,
+        card.list.board.name,
+        `${process.env.APP_URL || 'http://localhost:4000'}/boards/${boardId}/cards/${id}`
+      );
       void sendEmail({ to: assignedUser.email, ...opts });
     }
 
@@ -331,10 +401,18 @@ router.post(
 router.post(
   '/:id/comments',
   asyncHandler(async (req, res) => {
-     const { id } = req.params;
-     const { content } = req.body;
-     if (!content || typeof content !== 'string' || content.length > FIELD_LENGTHS.COMMENT_MAX) {
-       return res.status(422).json({ ok: false, error: { code: 'VALIDATION_FAILED', message: `Content is required (max ${FIELD_LENGTHS.COMMENT_MAX} chars)` } });
+    const { id } = req.params;
+    const { content } = req.body;
+    if (!content || typeof content !== 'string' || content.length > FIELD_LENGTHS.COMMENT_MAX) {
+      return res
+        .status(422)
+        .json({
+          ok: false,
+          error: {
+            code: 'VALIDATION_FAILED',
+            message: `Content is required (max ${FIELD_LENGTHS.COMMENT_MAX} chars)`,
+          },
+        });
     }
     const comment = await prisma.comment.create({
       data: { cardId: id, userId: req.user!.userId, content },
@@ -346,22 +424,36 @@ router.post(
       notifyBoard(boardId2, 'card:comment:added', { cardId: id, comment }, req.user);
 
       const [cardInfo, assignees] = await Promise.all([
-        prisma.card.findUnique({ where: { id }, select: { title: true, list: { select: { board: { select: { name: true } } } } } }),
-        prisma.cardAssignee.findMany({ where: { cardId: id }, include: { user: { select: { email: true, id: true } } } }),
+        prisma.card.findUnique({
+          where: { id },
+          select: { title: true, list: { select: { board: { select: { name: true } } } } },
+        }),
+        prisma.cardAssignee.findMany({
+          where: { cardId: id },
+          include: { user: { select: { email: true, id: true } } },
+        }),
       ]);
       if (cardInfo) {
         const commenter = req.user!.email.split('@')[0];
-        for (const a of assignees
-          .filter(a => a.userId !== req.user!.userId)) {
-            const msg = `${commenter} commented on "${cardInfo.title}"`;
-            const notif = addNotification(a.userId, { userId: a.userId, type: 'comment', message: msg, read: false });
-            notifyUser(a.userId, 'notification:new', notif);
-          }
-        const emails = assignees
-          .map(a => a.user.email)
-          .filter(e => e !== req.user!.email);
+        for (const a of assignees.filter((a) => a.userId !== req.user!.userId)) {
+          const msg = `${commenter} commented on "${cardInfo.title}"`;
+          const notif = addNotification(a.userId, {
+            userId: a.userId,
+            type: 'comment',
+            message: msg,
+            read: false,
+          });
+          notifyUser(a.userId, 'notification:new', notif);
+        }
+        const emails = assignees.map((a) => a.user.email).filter((e) => e !== req.user!.email);
         if (emails.length > 0) {
-          const opts = commentNotificationEmail(req.user!.email, cardInfo.title, cardInfo.list.board.name, content, `${process.env.APP_URL || 'http://localhost:4000'}/boards/${boardId2}/cards/${id}`);
+          const opts = commentNotificationEmail(
+            req.user!.email,
+            cardInfo.title,
+            cardInfo.list.board.name,
+            content,
+            `${process.env.APP_URL || 'http://localhost:4000'}/boards/${boardId2}/cards/${id}`
+          );
           for (const to of emails) void sendEmail({ to, ...opts });
         }
       }
@@ -483,7 +575,7 @@ router.delete(
 
     const current = (card.attachments as Prisma.JsonArray) || [];
     const list = current as Array<Record<string, unknown>>;
-    const attachment = list.find(a => a.id === attachmentId);
+    const attachment = list.find((a) => a.id === attachmentId);
     if (!attachment) {
       return res.status(404).json({
         ok: false,
@@ -491,7 +583,7 @@ router.delete(
       });
     }
 
-    const remaining = list.filter(a => a.id !== attachmentId);
+    const remaining = list.filter((a) => a.id !== attachmentId);
     await prisma.card.update({
       where: { id },
       data: { attachments: remaining as Prisma.JsonArray },

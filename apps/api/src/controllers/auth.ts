@@ -33,7 +33,14 @@ function hashToken(token: string) {
 async function createRefreshToken(userId: string) {
   const raw = randomBytes(40).toString('hex');
   const hashed = hashToken(raw);
-  const expiresAt = new Date(Date.now() + DEFAULTS.REFRESH_TOKEN_EXPIRY_DAYS * TIME.HOURS_PER_DAY * TIME.MINUTES_PER_HOUR * TIME.SECONDS_PER_MINUTE * TIME.MS_PER_SECOND);
+  const expiresAt = new Date(
+    Date.now() +
+      DEFAULTS.REFRESH_TOKEN_EXPIRY_DAYS *
+        TIME.HOURS_PER_DAY *
+        TIME.MINUTES_PER_HOUR *
+        TIME.SECONDS_PER_MINUTE *
+        TIME.MS_PER_SECOND
+  );
 
   await prisma.refreshToken.create({
     data: { token: hashed, userId, expiresAt },
@@ -42,14 +49,23 @@ async function createRefreshToken(userId: string) {
   return raw;
 }
 
-function respondWithTokens(user: { id: string; email: string; name: string; avatar: string | null; role: string }, refreshToken: string) {
+function respondWithTokens(
+  user: { id: string; email: string; name: string; avatar: string | null; role: string },
+  refreshToken: string
+) {
   const token = signToken({ userId: user.id, email: user.email, role: user.role });
   return {
     ok: true,
     data: {
       token,
       refreshToken,
-      user: { id: user.id, email: user.email, name: user.name, avatar: user.avatar, role: user.role },
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        avatar: user.avatar,
+        role: user.role,
+      },
     },
   };
 }
@@ -124,7 +140,9 @@ router.post(
 
     const stored = await prisma.refreshToken.findUnique({
       where: { token: hashed },
-      include: { user: { select: { id: true, email: true, name: true, avatar: true, role: true } } },
+      include: {
+        user: { select: { id: true, email: true, name: true, avatar: true, role: true } },
+      },
     });
 
     if (!stored || stored.revoked || stored.expiresAt < new Date()) {

@@ -10,14 +10,28 @@ import { z } from 'zod';
 const router = Router({ mergeParams: true });
 
 const VALID_EVENTS = [
-  'board:created', 'board:updated', 'board:deleted',
-  'list:created', 'list:updated', 'list:deleted',
-  'card:created', 'card:updated', 'card:deleted', 'card:moved',
-  'card:label:added', 'card:label:removed',
-  'card:assignee:added', 'card:assignee:removed',
-  'card:attachment:added', 'card:attachment:removed',
-  'comment:created', 'comment:updated', 'comment:deleted',
-  'member:added', 'member:removed', 'member:role:updated',
+  'board:created',
+  'board:updated',
+  'board:deleted',
+  'list:created',
+  'list:updated',
+  'list:deleted',
+  'card:created',
+  'card:updated',
+  'card:deleted',
+  'card:moved',
+  'card:label:added',
+  'card:label:removed',
+  'card:assignee:added',
+  'card:assignee:removed',
+  'card:attachment:added',
+  'card:attachment:removed',
+  'comment:created',
+  'comment:updated',
+  'comment:deleted',
+  'member:added',
+  'member:removed',
+  'member:role:updated',
 ] as const;
 
 const CreateWebhookSchema = z.object({

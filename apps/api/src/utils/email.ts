@@ -43,7 +43,13 @@ export function boardInviteEmail(inviterName: string, boardName: string, boardUr
   };
 }
 
-export function commentNotificationEmail(commenterName: string, cardTitle: string, boardName: string, commentContent: string, cardUrl: string) {
+export function commentNotificationEmail(
+  commenterName: string,
+  cardTitle: string,
+  boardName: string,
+  commentContent: string,
+  cardUrl: string
+) {
   return {
     subject: `${commenterName} commented on ${cardTitle}`,
     html: `
@@ -56,7 +62,12 @@ export function commentNotificationEmail(commenterName: string, cardTitle: strin
   };
 }
 
-export function assignmentNotificationEmail(assignerName: string, cardTitle: string, boardName: string, cardUrl: string) {
+export function assignmentNotificationEmail(
+  assignerName: string,
+  cardTitle: string,
+  boardName: string,
+  cardUrl: string
+) {
   return {
     subject: `You were assigned to ${cardTitle}`,
     html: `

@@ -9,7 +9,7 @@ export const ErrorCode = {
   SERVICE_UNAVAILABLE: 'SERVICE_UNAVAILABLE',
 } as const;
 
-export type ErrorCodeType = typeof ErrorCode[keyof typeof ErrorCode];
+export type ErrorCodeType = (typeof ErrorCode)[keyof typeof ErrorCode];
 
 export class AppError extends Error {
   constructor(

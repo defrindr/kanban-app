@@ -129,8 +129,7 @@ describe('Board Members', () => {
   });
 
   it('rejects remove without auth', async () => {
-    const res = await request(app)
-      .delete(`/api/boards/${boardId}/members/${memberId}`);
+    const res = await request(app).delete(`/api/boards/${boardId}/members/${memberId}`);
 
     expect(res.status).toBe(401);
   });

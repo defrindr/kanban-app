@@ -6,7 +6,7 @@ export async function notifyWebhooks(
   boardId: string,
   event: string,
   actor: { userId: string; email: string },
-  data: Record<string, unknown>,
+  data: Record<string, unknown>
 ) {
   try {
     const webhooks = await prisma.webhook.findMany({
@@ -23,9 +23,7 @@ export async function notifyWebhooks(
       data,
     };
 
-    await Promise.allSettled(
-      webhooks.map(wh => dispatchWebhook(wh.url, wh.secret, payload)),
-    );
+    await Promise.allSettled(webhooks.map((wh) => dispatchWebhook(wh.url, wh.secret, payload)));
   } catch {
     // webhook failures are non-critical
   }

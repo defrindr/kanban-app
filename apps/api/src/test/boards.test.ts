@@ -30,9 +30,7 @@ describe('Board CRUD', () => {
   });
 
   it('lists boards', async () => {
-    const res = await request(app)
-      .get('/api/boards')
-      .set('Authorization', `Bearer ${token}`);
+    const res = await request(app).get('/api/boards').set('Authorization', `Bearer ${token}`);
 
     expect(res.status).toBe(200);
     expect(res.body.ok).toBe(true);
@@ -68,9 +66,7 @@ describe('Board CRUD', () => {
   });
 
   it('rejects without auth', async () => {
-    const res = await request(app)
-      .post('/api/boards')
-      .send({ name: 'No Auth Board' });
+    const res = await request(app).post('/api/boards').send({ name: 'No Auth Board' });
 
     expect(res.status).toBe(401);
   });

@@ -54,12 +54,16 @@ if (process.env.SENTRY_DSN) {
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-in-prod';
 
 io.use((socket, next) => {
-  const token = socket.handshake.auth?.token || socket.handshake.query?.token as string;
+  const token = socket.handshake.auth?.token || (socket.handshake.query?.token as string);
   if (!token) {
     return next(new Error('Authentication required'));
   }
   try {
-    const payload = jwt.verify(token, JWT_SECRET) as { userId: string; email: string; role: string };
+    const payload = jwt.verify(token, JWT_SECRET) as {
+      userId: string;
+      email: string;
+      role: string;
+    };
     socket.data.user = payload;
     next();
   } catch {
@@ -81,10 +85,7 @@ app.use('/api/docs', swaggerServe, swaggerSetup);
 app.get('/health/ready', async (_, res) => {
   try {
     await Promise.race([
-      Promise.all([
-        prisma.$queryRaw`SELECT 1`,
-        redis.ping(),
-      ]),
+      Promise.all([prisma.$queryRaw`SELECT 1`, redis.ping()]),
       new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 5000)),
     ]);
     res.json({ status: 'ok', uptime: process.uptime() });

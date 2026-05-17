@@ -67,7 +67,17 @@ router.post(
       let user = await prisma.user.findUnique({ where: { email } });
       if (!user) {
         user = await prisma.user.create({
-          data: { name, email, password: '', avatar: name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2) },
+          data: {
+            name,
+            email,
+            password: '',
+            avatar: name
+              .split(' ')
+              .map((n: string) => n[0])
+              .join('')
+              .toUpperCase()
+              .slice(0, 2),
+          },
         });
       }
       userId = user.id;
@@ -101,7 +111,11 @@ router.post(
 
     const board = await prisma.board.findUnique({ where: { id: boardId }, select: { name: true } });
     if (board) {
-      const emailOpts = boardInviteEmail(req.user!.email, board.name, `${process.env.APP_URL || 'http://localhost:4000'}/boards/${boardId}`);
+      const emailOpts = boardInviteEmail(
+        req.user!.email,
+        board.name,
+        `${process.env.APP_URL || 'http://localhost:4000'}/boards/${boardId}`
+      );
       void sendEmail({ to: user.email, ...emailOpts });
     }
 

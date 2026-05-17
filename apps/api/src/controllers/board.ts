@@ -9,7 +9,11 @@ import { notifyBoard } from '../utils/notifications.js';
 import { logActivity } from '../utils/activity.js';
 import { PAGINATION, FIELD_LENGTHS, SEARCH_TYPES } from '../config/constants.js';
 import { z } from 'zod';
-import { ActivityAction as PrismaActivityAction, EntityType as PrismaEntityType, Prisma } from '@prisma/client';
+import {
+  ActivityAction as PrismaActivityAction,
+  EntityType as PrismaEntityType,
+  Prisma,
+} from '@prisma/client';
 
 type PrismaActivityWhereInput = Prisma.ActivityWhereInput;
 
@@ -81,9 +85,23 @@ router.get(
 
 const GlobalSearchSchema = z.object({
   q: z.string().min(FIELD_LENGTHS.SEARCH_QUERY_MIN).max(FIELD_LENGTHS.SEARCH_QUERY_MAX),
-  type: z.enum([SEARCH_TYPES.ALL, SEARCH_TYPES.BOARDS, SEARCH_TYPES.CARDS, SEARCH_TYPES.LISTS, SEARCH_TYPES.COMMENTS]).optional().default(SEARCH_TYPES.ALL),
+  type: z
+    .enum([
+      SEARCH_TYPES.ALL,
+      SEARCH_TYPES.BOARDS,
+      SEARCH_TYPES.CARDS,
+      SEARCH_TYPES.LISTS,
+      SEARCH_TYPES.COMMENTS,
+    ])
+    .optional()
+    .default(SEARCH_TYPES.ALL),
   page: z.coerce.number().int().min(PAGINATION.MIN_PAGE).default(PAGINATION.DEFAULT_PAGE),
-  limit: z.coerce.number().int().min(PAGINATION.MIN_PAGE).max(PAGINATION.SEARCH_MAX_LIMIT).default(PAGINATION.SEARCH_DEFAULT_LIMIT),
+  limit: z.coerce
+    .number()
+    .int()
+    .min(PAGINATION.MIN_PAGE)
+    .max(PAGINATION.SEARCH_MAX_LIMIT)
+    .default(PAGINATION.SEARCH_DEFAULT_LIMIT),
 });
 
 router.get(
@@ -99,7 +117,11 @@ router.get(
       .then((members) => members.map((m) => m.boardId));
 
     if (userBoardIds.length === 0) {
-      return res.json({ ok: true, data: { boards: [], cards: [], lists: [], comments: [] }, meta: { total: 0 } });
+      return res.json({
+        ok: true,
+        data: { boards: [], cards: [], lists: [], comments: [] },
+        meta: { total: 0 },
+      });
     }
 
     const results: Record<string, unknown[]> = { boards: [], cards: [], lists: [], comments: [] };
@@ -107,8 +129,28 @@ router.get(
 
     if (type === 'all' || type === 'boards') {
       const [boards, boardsTotal] = await Promise.all([
-        prisma.board.findMany({ where: { id: { in: userBoardIds }, OR: [{ name: { contains: q, mode: 'insensitive' } }, { description: { contains: q, mode: 'insensitive' } }] }, skip, take: limit, select: { id: true, name: true, description: true, createdAt: true }, orderBy: { updatedAt: 'desc' } }),
-        prisma.board.count({ where: { id: { in: userBoardIds }, OR: [{ name: { contains: q, mode: 'insensitive' } }, { description: { contains: q, mode: 'insensitive' } }] } }),
+        prisma.board.findMany({
+          where: {
+            id: { in: userBoardIds },
+            OR: [
+              { name: { contains: q, mode: 'insensitive' } },
+              { description: { contains: q, mode: 'insensitive' } },
+            ],
+          },
+          skip,
+          take: limit,
+          select: { id: true, name: true, description: true, createdAt: true },
+          orderBy: { updatedAt: 'desc' },
+        }),
+        prisma.board.count({
+          where: {
+            id: { in: userBoardIds },
+            OR: [
+              { name: { contains: q, mode: 'insensitive' } },
+              { description: { contains: q, mode: 'insensitive' } },
+            ],
+          },
+        }),
       ]);
       results.boards = boards;
       if (type === 'boards') total = boardsTotal;
@@ -116,7 +158,13 @@ router.get(
 
     if (type === 'all' || type === 'lists') {
       const [lists, listsTotal] = await Promise.all([
-        prisma.list.findMany({ where: { boardId: { in: userBoardIds } }, skip: type === 'all' ? 0 : skip, take: type === 'all' ? limit : limit, select: { id: true, title: true, boardId: true, createdAt: true }, orderBy: { updatedAt: 'desc' } }),
+        prisma.list.findMany({
+          where: { boardId: { in: userBoardIds } },
+          skip: type === 'all' ? 0 : skip,
+          take: type === 'all' ? limit : limit,
+          select: { id: true, title: true, boardId: true, createdAt: true },
+          orderBy: { updatedAt: 'desc' },
+        }),
         prisma.list.count({ where: { boardId: { in: userBoardIds } } }),
       ]);
       const filteredLists = lists.filter((l) => l.title.toLowerCase().includes(q.toLowerCase()));
@@ -126,24 +174,74 @@ router.get(
 
     if (type === 'all' || type === 'cards') {
       const [cards, cardsTotal] = await Promise.all([
-        prisma.card.findMany({ where: { list: { boardId: { in: userBoardIds } }, OR: [{ title: { contains: q, mode: 'insensitive' } }, { description: { contains: q, mode: 'insensitive' } }] }, skip: type === 'all' ? 0 : skip, take: type === 'all' ? limit : limit, select: { id: true, title: true, description: true, listId: true, createdAt: true }, orderBy: { updatedAt: 'desc' } }),
-        prisma.card.count({ where: { list: { boardId: { in: userBoardIds } }, OR: [{ title: { contains: q, mode: 'insensitive' } }, { description: { contains: q, mode: 'insensitive' } }] } }),
+        prisma.card.findMany({
+          where: {
+            list: { boardId: { in: userBoardIds } },
+            OR: [
+              { title: { contains: q, mode: 'insensitive' } },
+              { description: { contains: q, mode: 'insensitive' } },
+            ],
+          },
+          skip: type === 'all' ? 0 : skip,
+          take: type === 'all' ? limit : limit,
+          select: { id: true, title: true, description: true, listId: true, createdAt: true },
+          orderBy: { updatedAt: 'desc' },
+        }),
+        prisma.card.count({
+          where: {
+            list: { boardId: { in: userBoardIds } },
+            OR: [
+              { title: { contains: q, mode: 'insensitive' } },
+              { description: { contains: q, mode: 'insensitive' } },
+            ],
+          },
+        }),
       ]);
-      const cardsWithBoardInfo = await Promise.all(cards.map(async (c) => { const list = await prisma.list.findUnique({ where: { id: c.listId }, select: { boardId: true } }); const board = list ? await prisma.board.findUnique({ where: { id: list.boardId }, select: { name: true } }) : null; return { ...c, boardId: list?.boardId, boardName: board?.name }; }));
+      const cardsWithBoardInfo = await Promise.all(
+        cards.map(async (c) => {
+          const list = await prisma.list.findUnique({
+            where: { id: c.listId },
+            select: { boardId: true },
+          });
+          const board = list
+            ? await prisma.board.findUnique({ where: { id: list.boardId }, select: { name: true } })
+            : null;
+          return { ...c, boardId: list?.boardId, boardName: board?.name };
+        })
+      );
       results.cards = cardsWithBoardInfo;
       if (type === 'cards') total = cardsTotal;
     }
 
     if (type === 'all' || type === 'comments') {
       const [comments, commentsTotal] = await Promise.all([
-        prisma.comment.findMany({ where: { card: { list: { boardId: { in: userBoardIds } } }, content: { contains: q, mode: 'insensitive' } }, skip: type === 'all' ? 0 : skip, take: type === 'all' ? limit : limit, select: { id: true, content: true, cardId: true, createdAt: true }, orderBy: { createdAt: 'desc' } }),
-        prisma.comment.count({ where: { card: { list: { boardId: { in: userBoardIds } } }, content: { contains: q, mode: 'insensitive' } } }),
+        prisma.comment.findMany({
+          where: {
+            card: { list: { boardId: { in: userBoardIds } } },
+            content: { contains: q, mode: 'insensitive' },
+          },
+          skip: type === 'all' ? 0 : skip,
+          take: type === 'all' ? limit : limit,
+          select: { id: true, content: true, cardId: true, createdAt: true },
+          orderBy: { createdAt: 'desc' },
+        }),
+        prisma.comment.count({
+          where: {
+            card: { list: { boardId: { in: userBoardIds } } },
+            content: { contains: q, mode: 'insensitive' },
+          },
+        }),
       ]);
       results.comments = comments;
       if (type === 'comments') total = commentsTotal;
     }
 
-    if (type === 'all') total = (results.boards as unknown[]).length + (results.lists as unknown[]).length + (results.cards as unknown[]).length + (results.comments as unknown[]).length;
+    if (type === 'all')
+      total =
+        (results.boards as unknown[]).length +
+        (results.lists as unknown[]).length +
+        (results.cards as unknown[]).length +
+        (results.comments as unknown[]).length;
     res.json({ ok: true, data: results, meta: { q, type, page, limit, total } });
   })
 );
@@ -277,7 +375,12 @@ router.delete(
 
 const ActivityFilterSchema = z.object({
   page: z.coerce.number().int().min(PAGINATION.MIN_PAGE).default(PAGINATION.DEFAULT_PAGE),
-  limit: z.coerce.number().int().min(PAGINATION.MIN_PAGE).max(PAGINATION.MAX_LIMIT).default(PAGINATION.DEFAULT_LIMIT),
+  limit: z.coerce
+    .number()
+    .int()
+    .min(PAGINATION.MIN_PAGE)
+    .max(PAGINATION.MAX_LIMIT)
+    .default(PAGINATION.DEFAULT_LIMIT),
   action: z.nativeEnum(PrismaActivityAction).optional(),
   entityType: z.nativeEnum(PrismaEntityType).optional(),
   userId: z.string().optional(),
@@ -290,7 +393,13 @@ router.get(
   asyncHandler(async (req, res) => {
     const { id } = req.params;
     const parsed = ActivityFilterSchema.safeParse(req.query);
-    if (!parsed.success) throw new AppError('VALIDATION_FAILED', 'Invalid filter parameters', 422, parsed.error.flatten());
+    if (!parsed.success)
+      throw new AppError(
+        'VALIDATION_FAILED',
+        'Invalid filter parameters',
+        422,
+        parsed.error.flatten()
+      );
     const filters = parsed.data;
     const skip = (filters.page - 1) * filters.limit;
 
@@ -300,8 +409,10 @@ router.get(
     if (filters.userId) where.userId = filters.userId;
     if (filters.dateFrom || filters.dateTo) {
       where.createdAt = {};
-      if (filters.dateFrom) (where.createdAt as Record<string, unknown>).gte = new Date(filters.dateFrom);
-      if (filters.dateTo) (where.createdAt as Record<string, unknown>).lte = new Date(filters.dateTo);
+      if (filters.dateFrom)
+        (where.createdAt as Record<string, unknown>).gte = new Date(filters.dateFrom);
+      if (filters.dateTo)
+        (where.createdAt as Record<string, unknown>).lte = new Date(filters.dateTo);
     }
 
     const [activities, total] = await Promise.all([
@@ -318,8 +429,13 @@ router.get(
     res.json({
       ok: true,
       data: activities,
-      meta: { page: filters.page, limit: filters.limit, total, totalPages: Math.ceil(total / filters.limit) },
-});
+      meta: {
+        page: filters.page,
+        limit: filters.limit,
+        total,
+        totalPages: Math.ceil(total / filters.limit),
+      },
+    });
   })
 );
 

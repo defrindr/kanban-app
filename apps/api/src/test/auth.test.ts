@@ -87,9 +87,7 @@ describe('POST /api/auth/login', () => {
 
 describe('POST /api/auth/refresh', () => {
   it('returns new tokens with valid refresh token', async () => {
-    const { body } = await request(app)
-      .post('/api/auth/refresh')
-      .send({ refreshToken });
+    const { body } = await request(app).post('/api/auth/refresh').send({ refreshToken });
 
     expect(body.ok).toBe(true);
     expect(body.data.token).toBeDefined();
@@ -101,16 +99,12 @@ describe('POST /api/auth/refresh', () => {
   });
 
   it('rejects already-used refresh token', async () => {
-    const res = await request(app)
-      .post('/api/auth/refresh')
-      .send({ refreshToken });
+    const res = await request(app).post('/api/auth/refresh').send({ refreshToken });
 
     expect(res.status).toBe(200);
     expect(res.body.ok).toBe(true);
 
-    const res2 = await request(app)
-      .post('/api/auth/refresh')
-      .send({ refreshToken });
+    const res2 = await request(app).post('/api/auth/refresh').send({ refreshToken });
 
     expect(res2.status).toBe(401);
     refreshToken = res.body.data.refreshToken;
@@ -125,9 +119,7 @@ describe('POST /api/auth/refresh', () => {
   });
 
   it('rejects empty body', async () => {
-    const res = await request(app)
-      .post('/api/auth/refresh')
-      .send({});
+    const res = await request(app).post('/api/auth/refresh').send({});
 
     expect(res.status).toBe(422);
   });
@@ -135,9 +127,7 @@ describe('POST /api/auth/refresh', () => {
 
 describe('POST /api/auth/logout', () => {
   it('revokes refresh token', async () => {
-    const { body } = await request(app)
-      .post('/api/auth/refresh')
-      .send({ refreshToken });
+    const { body } = await request(app).post('/api/auth/refresh').send({ refreshToken });
 
     const res = await request(app)
       .post('/api/auth/logout')
@@ -158,9 +148,7 @@ describe('GET /api/auth/me', () => {
   it('returns current user with valid token', async () => {
     const { data } = await registerTestUser(`me-test-${Date.now()}@test.com`);
 
-    const res = await request(app)
-      .get('/api/auth/me')
-      .set('Authorization', `Bearer ${data.token}`);
+    const res = await request(app).get('/api/auth/me').set('Authorization', `Bearer ${data.token}`);
 
     expect(res.status).toBe(200);
     expect(res.body.ok).toBe(true);
@@ -175,9 +163,7 @@ describe('GET /api/auth/me', () => {
   });
 
   it('rejects invalid token', async () => {
-    const res = await request(app)
-      .get('/api/auth/me')
-      .set('Authorization', 'Bearer invalid-token');
+    const res = await request(app).get('/api/auth/me').set('Authorization', 'Bearer invalid-token');
 
     expect(res.status).toBe(401);
     expect(res.body.ok).toBe(false);

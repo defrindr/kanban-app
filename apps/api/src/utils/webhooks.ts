@@ -23,7 +23,7 @@ export function verifySignature(body: string, signature: string, secret: string)
 export async function dispatchWebhook(
   url: string,
   secret: string,
-  payload: WebhookPayload,
+  payload: WebhookPayload
 ): Promise<boolean> {
   const signature = signPayload(payload, secret);
   try {

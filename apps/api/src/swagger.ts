@@ -153,7 +153,8 @@ export const spec = {
   info: {
     title: 'Kanban Board API',
     version: '1.0.0',
-    description: 'Production-grade kanban board REST API with auth, RBAC, boards, lists, cards, comments, labels, and attachments.',
+    description:
+      'Production-grade kanban board REST API with auth, RBAC, boards, lists, cards, comments, labels, and attachments.',
   },
   servers: [
     { url: 'http://localhost:4000/api/v1', description: 'Local development (v1)' },
@@ -220,80 +221,95 @@ export const spec = {
                       type: 'object',
                       properties: {
                         token: { type: 'string', description: 'JWT access token (expires 7d)' },
-                        refreshToken: { type: 'string', description: 'Refresh token (expires 30d, one-time use)' },
-                         user: {
-                           type: 'object',
-                           properties: {
-                             id: { type: 'string' },
-                             email: { type: 'string' },
-                             name: { type: 'string' },
-                             avatar: { type: 'string', nullable: true },
-                             role: { type: 'string', enum: ['USER', 'ADMIN'] },
-                           },
-                         },
-                       },
-                     },
-                   },
-                 },
-               },
-             },
-           },
-           '409': { description: 'Email already registered', content: { 'application/json': { schema: { $ref: '#/components/schemas/Error' } } } },
-           '422': { description: 'Validation error', content: { 'application/json': { schema: { $ref: '#/components/schemas/Error' } } } },
-         },
-       },
-     },
-     '/api/auth/login': {
-       post: {
-         tags: ['Auth'],
-         summary: 'Login with email and password',
-         requestBody: {
-           required: true,
-           content: {
-             'application/json': {
-               schema: {
-                 type: 'object',
-                 required: ['email', 'password'],
-                 properties: {
-                   email: { type: 'string', format: 'email', example: 'user@example.com' },
-                   password: { type: 'string', example: 'password123' },
-                 },
-               },
-             },
-           },
-         },
-         responses: {
-           '200': {
-             description: 'Login successful',
-             content: {
-               'application/json': {
-                 schema: {
-                   type: 'object',
-                   properties: {
-                     ok: { type: 'boolean', enum: [true] },
-                     data: {
-                       type: 'object',
-                       properties: {
-                         token: { type: 'string', description: 'JWT access token (expires 7d)' },
-                         refreshToken: { type: 'string', description: 'Refresh token (expires 30d, one-time use)' },
-                         user: {
-                           type: 'object',
-                           properties: {
-                             id: { type: 'string' },
-                             email: { type: 'string' },
-                             name: { type: 'string' },
-                             avatar: { type: 'string', nullable: true },
-                             role: { type: 'string', enum: ['USER', 'ADMIN'] },
-                           },
-                         },
-                       },
-                     },
-                   },
-                 },
-               },
-             },
-           },
-          '401': { description: 'Invalid email or password', content: { 'application/json': { schema: { $ref: '#/components/schemas/Error' } } } },
+                        refreshToken: {
+                          type: 'string',
+                          description: 'Refresh token (expires 30d, one-time use)',
+                        },
+                        user: {
+                          type: 'object',
+                          properties: {
+                            id: { type: 'string' },
+                            email: { type: 'string' },
+                            name: { type: 'string' },
+                            avatar: { type: 'string', nullable: true },
+                            role: { type: 'string', enum: ['USER', 'ADMIN'] },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          '409': {
+            description: 'Email already registered',
+            content: { 'application/json': { schema: { $ref: '#/components/schemas/Error' } } },
+          },
+          '422': {
+            description: 'Validation error',
+            content: { 'application/json': { schema: { $ref: '#/components/schemas/Error' } } },
+          },
+        },
+      },
+    },
+    '/api/auth/login': {
+      post: {
+        tags: ['Auth'],
+        summary: 'Login with email and password',
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['email', 'password'],
+                properties: {
+                  email: { type: 'string', format: 'email', example: 'user@example.com' },
+                  password: { type: 'string', example: 'password123' },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          '200': {
+            description: 'Login successful',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    ok: { type: 'boolean', enum: [true] },
+                    data: {
+                      type: 'object',
+                      properties: {
+                        token: { type: 'string', description: 'JWT access token (expires 7d)' },
+                        refreshToken: {
+                          type: 'string',
+                          description: 'Refresh token (expires 30d, one-time use)',
+                        },
+                        user: {
+                          type: 'object',
+                          properties: {
+                            id: { type: 'string' },
+                            email: { type: 'string' },
+                            name: { type: 'string' },
+                            avatar: { type: 'string', nullable: true },
+                            role: { type: 'string', enum: ['USER', 'ADMIN'] },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          '401': {
+            description: 'Invalid email or password',
+            content: { 'application/json': { schema: { $ref: '#/components/schemas/Error' } } },
+          },
         },
       },
     },
@@ -326,7 +342,10 @@ export const spec = {
               },
             },
           },
-          '401': { description: 'Not authenticated', content: { 'application/json': { schema: { $ref: '#/components/schemas/Error' } } } },
+          '401': {
+            description: 'Not authenticated',
+            content: { 'application/json': { schema: { $ref: '#/components/schemas/Error' } } },
+          },
         },
       },
     },
@@ -342,7 +361,10 @@ export const spec = {
                 type: 'object',
                 required: ['refreshToken'],
                 properties: {
-                  refreshToken: { type: 'string', description: 'Refresh token from register/login' },
+                  refreshToken: {
+                    type: 'string',
+                    description: 'Refresh token from register/login',
+                  },
                 },
               },
             },
@@ -351,9 +373,37 @@ export const spec = {
         responses: {
           '200': {
             description: 'New access and refresh tokens (old refresh token is revoked)',
-            content: { 'application/json': { schema: { type: 'object', properties: { ok: { type: 'boolean' }, data: { type: 'object', properties: { token: { type: 'string' }, refreshToken: { type: 'string' }, user: { type: 'object', properties: { id: { type: 'string' }, email: { type: 'string' }, name: { type: 'string' }, avatar: { type: 'string', nullable: true } } } } } } } } },
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    ok: { type: 'boolean' },
+                    data: {
+                      type: 'object',
+                      properties: {
+                        token: { type: 'string' },
+                        refreshToken: { type: 'string' },
+                        user: {
+                          type: 'object',
+                          properties: {
+                            id: { type: 'string' },
+                            email: { type: 'string' },
+                            name: { type: 'string' },
+                            avatar: { type: 'string', nullable: true },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
           },
-          '401': { description: 'Invalid or expired refresh token', content: { 'application/json': { schema: { $ref: '#/components/schemas/Error' } } } },
+          '401': {
+            description: 'Invalid or expired refresh token',
+            content: { 'application/json': { schema: { $ref: '#/components/schemas/Error' } } },
+          },
         },
       },
     },
@@ -389,7 +439,12 @@ export const spec = {
         parameters: [
           { name: 'page', in: 'query', schema: { type: 'integer', default: 1 } },
           { name: 'limit', in: 'query', schema: { type: 'integer', default: 20, maximum: 100 } },
-          { name: 'q', in: 'query', schema: { type: 'string' }, description: 'Search boards by name (case-insensitive)' },
+          {
+            name: 'q',
+            in: 'query',
+            schema: { type: 'string' },
+            description: 'Search boards by name (case-insensitive)',
+          },
         ],
         responses: {
           '200': {
@@ -436,7 +491,17 @@ export const spec = {
           },
         },
         responses: {
-          '201': { description: 'Board created with 3 default lists and creator as ADMIN member', content: { 'application/json': { schema: { type: 'object', properties: { ok: { type: 'boolean' }, data: BOARD_RESPONSE } } } } },
+          '201': {
+            description: 'Board created with 3 default lists and creator as ADMIN member',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: { ok: { type: 'boolean' }, data: BOARD_RESPONSE },
+                },
+              },
+            },
+          },
         },
       },
     },
@@ -447,8 +512,21 @@ export const spec = {
         security: [bearerAuth],
         parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
         responses: {
-          '200': { description: 'Board details with lists, cards, and members', content: { 'application/json': { schema: { type: 'object', properties: { ok: { type: 'boolean' }, data: BOARD_RESPONSE } } } } },
-          '404': { description: 'Board not found', content: { 'application/json': { schema: { $ref: '#/components/schemas/Error' } } } },
+          '200': {
+            description: 'Board details with lists, cards, and members',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: { ok: { type: 'boolean' }, data: BOARD_RESPONSE },
+                },
+              },
+            },
+          },
+          '404': {
+            description: 'Board not found',
+            content: { 'application/json': { schema: { $ref: '#/components/schemas/Error' } } },
+          },
         },
       },
       put: {
@@ -495,11 +573,36 @@ export const spec = {
           { name: 'id', in: 'path', required: true, schema: { type: 'string' } },
           { name: 'page', in: 'query', schema: { type: 'integer', default: 1 } },
           { name: 'limit', in: 'query', schema: { type: 'integer', default: 20, maximum: 100 } },
-          { name: 'action', in: 'query', schema: { type: 'string', enum: ['CREATE', 'UPDATE', 'DELETE', 'MOVE'] }, description: 'Filter by action type' },
-          { name: 'entityType', in: 'query', schema: { type: 'string', enum: ['BOARD', 'LIST', 'CARD', 'COMMENT'] }, description: 'Filter by entity type' },
-          { name: 'userId', in: 'query', schema: { type: 'string' }, description: 'Filter by user ID' },
-          { name: 'dateFrom', in: 'query', schema: { type: 'string', format: 'date-time' }, description: 'Filter activities after this date' },
-          { name: 'dateTo', in: 'query', schema: { type: 'string', format: 'date-time' }, description: 'Filter activities before this date' },
+          {
+            name: 'action',
+            in: 'query',
+            schema: { type: 'string', enum: ['CREATE', 'UPDATE', 'DELETE', 'MOVE'] },
+            description: 'Filter by action type',
+          },
+          {
+            name: 'entityType',
+            in: 'query',
+            schema: { type: 'string', enum: ['BOARD', 'LIST', 'CARD', 'COMMENT'] },
+            description: 'Filter by entity type',
+          },
+          {
+            name: 'userId',
+            in: 'query',
+            schema: { type: 'string' },
+            description: 'Filter by user ID',
+          },
+          {
+            name: 'dateFrom',
+            in: 'query',
+            schema: { type: 'string', format: 'date-time' },
+            description: 'Filter activities after this date',
+          },
+          {
+            name: 'dateTo',
+            in: 'query',
+            schema: { type: 'string', format: 'date-time' },
+            description: 'Filter activities before this date',
+          },
         ],
         responses: {
           '200': {
@@ -519,7 +622,10 @@ export const spec = {
                           boardId: { type: 'string' },
                           userId: { type: 'string' },
                           action: { type: 'string', enum: ['CREATE', 'UPDATE', 'DELETE', 'MOVE'] },
-                          entityType: { type: 'string', enum: ['BOARD', 'LIST', 'CARD', 'COMMENT'] },
+                          entityType: {
+                            type: 'string',
+                            enum: ['BOARD', 'LIST', 'CARD', 'COMMENT'],
+                          },
                           entityId: { type: 'string' },
                           metadata: { type: 'object' },
                           createdAt: { type: 'string', format: 'date-time' },
@@ -558,8 +664,23 @@ export const spec = {
         summary: 'Global search across all accessible boards, cards, lists, and comments',
         security: [bearerAuth],
         parameters: [
-          { name: 'q', in: 'query', required: true, schema: { type: 'string', minLength: 1, maxLength: 200 }, description: 'Search query' },
-          { name: 'type', in: 'query', schema: { type: 'string', enum: ['all', 'boards', 'cards', 'lists', 'comments'], default: 'all' }, description: 'Entity type to search' },
+          {
+            name: 'q',
+            in: 'query',
+            required: true,
+            schema: { type: 'string', minLength: 1, maxLength: 200 },
+            description: 'Search query',
+          },
+          {
+            name: 'type',
+            in: 'query',
+            schema: {
+              type: 'string',
+              enum: ['all', 'boards', 'cards', 'lists', 'comments'],
+              default: 'all',
+            },
+            description: 'Entity type to search',
+          },
           { name: 'page', in: 'query', schema: { type: 'integer', default: 1 } },
           { name: 'limit', in: 'query', schema: { type: 'integer', default: 20, maximum: 50 } },
         ],
@@ -575,13 +696,63 @@ export const spec = {
                     data: {
                       type: 'object',
                       properties: {
-                        boards: { type: 'array', items: { type: 'object', properties: { id: { type: 'string' }, name: { type: 'string' }, description: { type: 'string' } } } },
-                        cards: { type: 'array', items: { type: 'object', properties: { id: { type: 'string' }, title: { type: 'string' }, boardId: { type: 'string' }, boardName: { type: 'string' } } } },
-                        lists: { type: 'array', items: { type: 'object', properties: { id: { type: 'string' }, name: { type: 'string' }, boardId: { type: 'string' } } } },
-                        comments: { type: 'array', items: { type: 'object', properties: { id: { type: 'string' }, content: { type: 'string' }, cardId: { type: 'string' } } } },
+                        boards: {
+                          type: 'array',
+                          items: {
+                            type: 'object',
+                            properties: {
+                              id: { type: 'string' },
+                              name: { type: 'string' },
+                              description: { type: 'string' },
+                            },
+                          },
+                        },
+                        cards: {
+                          type: 'array',
+                          items: {
+                            type: 'object',
+                            properties: {
+                              id: { type: 'string' },
+                              title: { type: 'string' },
+                              boardId: { type: 'string' },
+                              boardName: { type: 'string' },
+                            },
+                          },
+                        },
+                        lists: {
+                          type: 'array',
+                          items: {
+                            type: 'object',
+                            properties: {
+                              id: { type: 'string' },
+                              name: { type: 'string' },
+                              boardId: { type: 'string' },
+                            },
+                          },
+                        },
+                        comments: {
+                          type: 'array',
+                          items: {
+                            type: 'object',
+                            properties: {
+                              id: { type: 'string' },
+                              content: { type: 'string' },
+                              cardId: { type: 'string' },
+                            },
+                          },
+                        },
                       },
                     },
-                    meta: { type: 'object', properties: { q: { type: 'string' }, type: { type: 'string' }, page: { type: 'integer' }, limit: { type: 'integer' }, total: { type: 'integer' } } },
+                    meta: {
+                      type: 'object',
+                      properties: {
+                        q: { type: 'string' },
+                        type: { type: 'string' },
+                        page: { type: 'integer' },
+                        limit: { type: 'integer' },
+                        total: { type: 'integer' },
+                      },
+                    },
                   },
                 },
               },
@@ -757,7 +928,11 @@ export const spec = {
                 type: 'object',
                 required: ['url', 'events'],
                 properties: {
-                  url: { type: 'string', format: 'uri', description: 'Webhook callback URL (max 500 chars)' },
+                  url: {
+                    type: 'string',
+                    format: 'uri',
+                    description: 'Webhook callback URL (max 500 chars)',
+                  },
                   events: {
                     type: 'array',
                     items: { type: 'string' },
@@ -923,14 +1098,55 @@ export const spec = {
         summary: 'Search and filter cards within a board',
         security: [bearerAuth],
         parameters: [
-          { name: 'boardId', in: 'query', required: true, schema: { type: 'string' }, description: 'Board ID to search within' },
-          { name: 'q', in: 'query', schema: { type: 'string' }, description: 'Search text in title and description (case-insensitive)' },
-          { name: 'listId', in: 'query', schema: { type: 'string' }, description: 'Filter by list ID' },
-          { name: 'labels', in: 'query', schema: { type: 'string' }, description: 'Comma-separated label names to filter by' },
-          { name: 'assigneeId', in: 'query', schema: { type: 'string' }, description: 'Filter by assignee user ID' },
-          { name: 'archived', in: 'query', schema: { type: 'boolean' }, description: 'Filter by archived status' },
-          { name: 'dueBefore', in: 'query', schema: { type: 'string', format: 'date-time' }, description: 'Filter cards with dueDate before this date' },
-          { name: 'dueAfter', in: 'query', schema: { type: 'string', format: 'date-time' }, description: 'Filter cards with dueDate after this date' },
+          {
+            name: 'boardId',
+            in: 'query',
+            required: true,
+            schema: { type: 'string' },
+            description: 'Board ID to search within',
+          },
+          {
+            name: 'q',
+            in: 'query',
+            schema: { type: 'string' },
+            description: 'Search text in title and description (case-insensitive)',
+          },
+          {
+            name: 'listId',
+            in: 'query',
+            schema: { type: 'string' },
+            description: 'Filter by list ID',
+          },
+          {
+            name: 'labels',
+            in: 'query',
+            schema: { type: 'string' },
+            description: 'Comma-separated label names to filter by',
+          },
+          {
+            name: 'assigneeId',
+            in: 'query',
+            schema: { type: 'string' },
+            description: 'Filter by assignee user ID',
+          },
+          {
+            name: 'archived',
+            in: 'query',
+            schema: { type: 'boolean' },
+            description: 'Filter by archived status',
+          },
+          {
+            name: 'dueBefore',
+            in: 'query',
+            schema: { type: 'string', format: 'date-time' },
+            description: 'Filter cards with dueDate before this date',
+          },
+          {
+            name: 'dueAfter',
+            in: 'query',
+            schema: { type: 'string', format: 'date-time' },
+            description: 'Filter cards with dueDate after this date',
+          },
           { name: 'page', in: 'query', schema: { type: 'integer', default: 1 } },
           { name: 'limit', in: 'query', schema: { type: 'integer', default: 20, maximum: 100 } },
         ],
@@ -983,7 +1199,17 @@ export const spec = {
           },
         },
         responses: {
-          '201': { description: 'Card created', content: { 'application/json': { schema: { type: 'object', properties: { ok: { type: 'boolean' }, data: CARD_RESPONSE } } } } },
+          '201': {
+            description: 'Card created',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: { ok: { type: 'boolean' }, data: CARD_RESPONSE },
+                },
+              },
+            },
+          },
           '404': { description: 'List not found' },
         },
       },
@@ -1008,8 +1234,31 @@ export const spec = {
                   dueDate: { type: 'string', format: 'date-time', nullable: true },
                   coverColor: { type: 'string', nullable: true },
                   archived: { type: 'boolean' },
-                  checklist: { type: 'array', items: { type: 'object', properties: { id: { type: 'string' }, text: { type: 'string' }, done: { type: 'boolean' } } } },
-                  attachments: { type: 'array', items: { type: 'object', properties: { id: { type: 'string' }, name: { type: 'string' }, url: { type: 'string' }, type: { type: 'string' }, size: { type: 'number' }, createdAt: { type: 'string' } } } },
+                  checklist: {
+                    type: 'array',
+                    items: {
+                      type: 'object',
+                      properties: {
+                        id: { type: 'string' },
+                        text: { type: 'string' },
+                        done: { type: 'boolean' },
+                      },
+                    },
+                  },
+                  attachments: {
+                    type: 'array',
+                    items: {
+                      type: 'object',
+                      properties: {
+                        id: { type: 'string' },
+                        name: { type: 'string' },
+                        url: { type: 'string' },
+                        type: { type: 'string' },
+                        size: { type: 'number' },
+                        createdAt: { type: 'string' },
+                      },
+                    },
+                  },
                 },
               },
             },
@@ -1181,7 +1430,12 @@ export const spec = {
                 type: 'object',
                 required: ['file'],
                 properties: {
-                  file: { type: 'string', format: 'binary', description: 'File to upload (max 10MB, allowed: images, PDF, DOC, TXT, CSV, ZIP, GZIP)' },
+                  file: {
+                    type: 'string',
+                    format: 'binary',
+                    description:
+                      'File to upload (max 10MB, allowed: images, PDF, DOC, TXT, CSV, ZIP, GZIP)',
+                  },
                 },
               },
             },
@@ -1243,7 +1497,28 @@ export const spec = {
           { name: 'limit', in: 'query', schema: { type: 'integer', default: 20, maximum: 100 } },
         ],
         responses: {
-          '200': { description: 'Paginated comments', content: { 'application/json': { schema: { type: 'object', properties: { ok: { type: 'boolean' }, data: { type: 'array', items: COMMENT_RESPONSE }, meta: { type: 'object', properties: { page: { type: 'integer' }, limit: { type: 'integer' }, total: { type: 'integer' } } } } } } } },
+          '200': {
+            description: 'Paginated comments',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    ok: { type: 'boolean' },
+                    data: { type: 'array', items: COMMENT_RESPONSE },
+                    meta: {
+                      type: 'object',
+                      properties: {
+                        page: { type: 'integer' },
+                        limit: { type: 'integer' },
+                        total: { type: 'integer' },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
           '404': { description: 'Card not found' },
         },
       },
@@ -1267,7 +1542,17 @@ export const spec = {
           },
         },
         responses: {
-          '201': { description: 'Comment created with activity logging', content: { 'application/json': { schema: { type: 'object', properties: { ok: { type: 'boolean' }, data: COMMENT_RESPONSE } } } } },
+          '201': {
+            description: 'Comment created with activity logging',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: { ok: { type: 'boolean' }, data: COMMENT_RESPONSE },
+                },
+              },
+            },
+          },
           '404': { description: 'Card not found' },
         },
       },
@@ -1280,10 +1565,28 @@ export const spec = {
         parameters: [
           { name: 'page', in: 'query', schema: { type: 'integer', default: 1 } },
           { name: 'limit', in: 'query', schema: { type: 'integer', default: 20, maximum: 100 } },
-          { name: 'boardId', in: 'query', schema: { type: 'string' }, description: 'Filter by board ID' },
-          { name: 'action', in: 'query', schema: { type: 'string', enum: ['CREATE', 'UPDATE', 'DELETE', 'MOVE'] } },
-          { name: 'entityType', in: 'query', schema: { type: 'string', enum: ['BOARD', 'LIST', 'CARD', 'COMMENT'] } },
-          { name: 'userId', in: 'query', schema: { type: 'string' }, description: 'Filter by user ID' },
+          {
+            name: 'boardId',
+            in: 'query',
+            schema: { type: 'string' },
+            description: 'Filter by board ID',
+          },
+          {
+            name: 'action',
+            in: 'query',
+            schema: { type: 'string', enum: ['CREATE', 'UPDATE', 'DELETE', 'MOVE'] },
+          },
+          {
+            name: 'entityType',
+            in: 'query',
+            schema: { type: 'string', enum: ['BOARD', 'LIST', 'CARD', 'COMMENT'] },
+          },
+          {
+            name: 'userId',
+            in: 'query',
+            schema: { type: 'string' },
+            description: 'Filter by user ID',
+          },
           { name: 'dateFrom', in: 'query', schema: { type: 'string', format: 'date-time' } },
           { name: 'dateTo', in: 'query', schema: { type: 'string', format: 'date-time' } },
         ],
@@ -1305,7 +1608,10 @@ export const spec = {
                           boardId: { type: 'string' },
                           userId: { type: 'string' },
                           action: { type: 'string', enum: ['CREATE', 'UPDATE', 'DELETE', 'MOVE'] },
-                          entityType: { type: 'string', enum: ['BOARD', 'LIST', 'CARD', 'COMMENT'] },
+                          entityType: {
+                            type: 'string',
+                            enum: ['BOARD', 'LIST', 'CARD', 'COMMENT'],
+                          },
                           entityId: { type: 'string' },
                           metadata: { type: 'object' },
                           createdAt: { type: 'string', format: 'date-time' },

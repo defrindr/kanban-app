@@ -1,4 +1,9 @@
-import { S3Client, PutObjectCommand, DeleteObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
+import {
+  S3Client,
+  PutObjectCommand,
+  DeleteObjectCommand,
+  GetObjectCommand,
+} from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { writeFile, unlink, mkdir } from 'fs/promises';
 import { existsSync } from 'fs';
@@ -55,21 +60,25 @@ class S3Storage implements StorageProvider {
   }
 
   async save(key: string, buffer: Buffer, mimetype: string): Promise<string> {
-    await this.client.send(new PutObjectCommand({
-      Bucket: this.bucket,
-      Key: key,
-      Body: buffer,
-      ContentType: mimetype,
-    }));
+    await this.client.send(
+      new PutObjectCommand({
+        Bucket: this.bucket,
+        Key: key,
+        Body: buffer,
+        ContentType: mimetype,
+      })
+    );
     return this.getUrl(key);
   }
 
   async delete(key: string): Promise<void> {
     try {
-      await this.client.send(new DeleteObjectCommand({
-        Bucket: this.bucket,
-        Key: key,
-      }));
+      await this.client.send(
+        new DeleteObjectCommand({
+          Bucket: this.bucket,
+          Key: key,
+        })
+      );
     } catch {
       // Ignore: delete may fail if object doesn't exist
     }

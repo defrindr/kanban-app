@@ -42,9 +42,7 @@ export const errorHandler = (
   res.status(500).json(response);
 };
 
-export const asyncHandler = (
-  fn: (req: Request, res: Response, next: NextFunction) => unknown
-) => {
+export const asyncHandler = (fn: (req: Request, res: Response, next: NextFunction) => unknown) => {
   return (req: Request, res: Response, next: NextFunction) => {
     Promise.resolve(fn(req, res, next)).catch(next);
   };

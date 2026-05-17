@@ -104,4 +104,3 @@ export const DEFAULTS = {
   CARD_POSITION: 1,
   REFRESH_TOKEN_EXPIRY_DAYS: 30,
 } as const;
-
