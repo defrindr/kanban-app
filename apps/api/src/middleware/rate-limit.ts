@@ -8,6 +8,11 @@ interface RateLimitConfig {
   getKey?: (req: Request) => string;
 }
 
+function envInt(key: string, def: number) {
+  const v = process.env[key];
+  return v ? parseInt(v, 10) : def;
+}
+
 function createRateLimiter({ windowMs, max, keyPrefix, getKey }: RateLimitConfig) {
   return async (req: Request, res: Response, next: NextFunction) => {
     if (process.env.NODE_ENV === 'test') {
@@ -46,32 +51,32 @@ function createRateLimiter({ windowMs, max, keyPrefix, getKey }: RateLimitConfig
 
 export const authLimiter = createRateLimiter({
   windowMs: 15 * 60 * 1000,
-  max: 20,
+  max: envInt('RATE_LIMIT_AUTH_MAX', 30),
   keyPrefix: 'auth',
+});
+
+export const apiLimiter = createRateLimiter({
+  windowMs: 60 * 1000,
+  max: envInt('RATE_LIMIT_API_MAX', 300),
+  keyPrefix: 'api',
+});
+
+export const writeLimiter = createRateLimiter({
+  windowMs: 60 * 1000,
+  max: envInt('RATE_LIMIT_WRITE_MAX', 120),
+  keyPrefix: 'write',
 });
 
 export const loginLimiter = createRateLimiter({
   windowMs: 15 * 60 * 1000,
-  max: 5,
+  max: envInt('RATE_LIMIT_LOGIN_MAX', 20),
   keyPrefix: 'login',
   getKey: (req) => req.ip || 'unknown',
 });
 
 export const registerLimiter = createRateLimiter({
   windowMs: 60 * 60 * 1000,
-  max: 3,
+  max: envInt('RATE_LIMIT_REGISTER_MAX', 10),
   keyPrefix: 'register',
   getKey: (req) => req.ip || 'unknown',
-});
-
-export const apiLimiter = createRateLimiter({
-  windowMs: 60 * 1000,
-  max: 200,
-  keyPrefix: 'api',
-});
-
-export const writeLimiter = createRateLimiter({
-  windowMs: 60 * 1000,
-  max: 60,
-  keyPrefix: 'write',
 });

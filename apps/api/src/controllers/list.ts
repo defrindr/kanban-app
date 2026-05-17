@@ -5,6 +5,7 @@ import { asyncHandler } from '../middleware/error-handler.js';
 import { CreateListSchema, UpdateListSchema, PaginationSchema } from '../utils/validation.js';
 import { notifyBoard } from '../utils/notifications.js';
 import { logActivity } from '../utils/activity.js';
+import { cacheDel } from '../utils/cache.js';
 
 const CARD_INCLUDE = {
   comments: { include: { user: { select: { id: true, name: true, avatar: true } } } },
@@ -55,6 +56,8 @@ router.post(
       data: { boardId, title, position: position || 1 },
     });
 
+    await cacheDel(`board:${boardId}`);
+
     await logActivity({
       boardId,
       userId: req.user!.userId,
@@ -88,6 +91,8 @@ router.put(
       data: { title, position },
     });
 
+    await cacheDel(`board:${existing.boardId}`);
+
     await logActivity({
       boardId: existing.boardId,
       userId: req.user!.userId,
@@ -113,6 +118,8 @@ router.delete(
         error: { code: 'NOT_FOUND', message: 'List not found' },
       });
     }
+
+    await cacheDel(`board:${list.boardId}`);
 
     await logActivity({
       boardId: list.boardId,

@@ -72,6 +72,75 @@ router.get(
   })
 );
 
+const GlobalSearchSchema = z.object({
+  q: z.string().min(1).max(200),
+  type: z.enum(['all', 'boards', 'cards', 'lists', 'comments']).optional().default('all'),
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(50).default(20),
+});
+
+router.get(
+  '/search',
+  validateQuery(GlobalSearchSchema),
+  asyncHandler(async (req, res) => {
+    const userId = req.user!.userId;
+    const { q, type, page, limit } = req.query as unknown as z.infer<typeof GlobalSearchSchema>;
+    const skip = (page - 1) * limit;
+
+    const userBoardIds = await prisma.boardMember
+      .findMany({ where: { userId }, select: { boardId: true } })
+      .then((members) => members.map((m) => m.boardId));
+
+    if (userBoardIds.length === 0) {
+      return res.json({ ok: true, data: { boards: [], cards: [], lists: [], comments: [] }, meta: { total: 0 } });
+    }
+
+    const results: Record<string, unknown[]> = { boards: [], cards: [], lists: [], comments: [] };
+    let total = 0;
+
+    if (type === 'all' || type === 'boards') {
+      const [boards, boardsTotal] = await Promise.all([
+        prisma.board.findMany({ where: { id: { in: userBoardIds }, OR: [{ name: { contains: q, mode: 'insensitive' } }, { description: { contains: q, mode: 'insensitive' } }] }, skip, take: limit, select: { id: true, name: true, description: true, createdAt: true }, orderBy: { updatedAt: 'desc' } }),
+        prisma.board.count({ where: { id: { in: userBoardIds }, OR: [{ name: { contains: q, mode: 'insensitive' } }, { description: { contains: q, mode: 'insensitive' } }] } }),
+      ]);
+      results.boards = boards;
+      if (type === 'boards') total = boardsTotal;
+    }
+
+    if (type === 'all' || type === 'lists') {
+      const [lists, listsTotal] = await Promise.all([
+        prisma.list.findMany({ where: { boardId: { in: userBoardIds } }, skip: type === 'all' ? 0 : skip, take: type === 'all' ? limit : limit, select: { id: true, title: true, boardId: true, createdAt: true }, orderBy: { updatedAt: 'desc' } }),
+        prisma.list.count({ where: { boardId: { in: userBoardIds } } }),
+      ]);
+      const filteredLists = lists.filter((l) => l.title.toLowerCase().includes(q.toLowerCase()));
+      results.lists = type === 'all' ? filteredLists.slice(0, limit) : filteredLists;
+      if (type === 'lists') total = listsTotal;
+    }
+
+    if (type === 'all' || type === 'cards') {
+      const [cards, cardsTotal] = await Promise.all([
+        prisma.card.findMany({ where: { list: { boardId: { in: userBoardIds } }, OR: [{ title: { contains: q, mode: 'insensitive' } }, { description: { contains: q, mode: 'insensitive' } }] }, skip: type === 'all' ? 0 : skip, take: type === 'all' ? limit : limit, select: { id: true, title: true, description: true, listId: true, createdAt: true }, orderBy: { updatedAt: 'desc' } }),
+        prisma.card.count({ where: { list: { boardId: { in: userBoardIds } }, OR: [{ title: { contains: q, mode: 'insensitive' } }, { description: { contains: q, mode: 'insensitive' } }] } }),
+      ]);
+      const cardsWithBoardInfo = await Promise.all(cards.map(async (c) => { const list = await prisma.list.findUnique({ where: { id: c.listId }, select: { boardId: true } }); const board = list ? await prisma.board.findUnique({ where: { id: list.boardId }, select: { name: true } }) : null; return { ...c, boardId: list?.boardId, boardName: board?.name }; }));
+      results.cards = cardsWithBoardInfo;
+      if (type === 'cards') total = cardsTotal;
+    }
+
+    if (type === 'all' || type === 'comments') {
+      const [comments, commentsTotal] = await Promise.all([
+        prisma.comment.findMany({ where: { card: { list: { boardId: { in: userBoardIds } } }, content: { contains: q, mode: 'insensitive' } }, skip: type === 'all' ? 0 : skip, take: type === 'all' ? limit : limit, select: { id: true, content: true, cardId: true, createdAt: true }, orderBy: { createdAt: 'desc' } }),
+        prisma.comment.count({ where: { card: { list: { boardId: { in: userBoardIds } } }, content: { contains: q, mode: 'insensitive' } } }),
+      ]);
+      results.comments = comments;
+      if (type === 'comments') total = commentsTotal;
+    }
+
+    if (type === 'all') total = (results.boards as unknown[]).length + (results.lists as unknown[]).length + (results.cards as unknown[]).length + (results.comments as unknown[]).length;
+    res.json({ ok: true, data: results, meta: { q, type, page, limit, total } });
+  })
+);
+
 router.get(
   '/:id',
   asyncHandler(async (req, res) => {
@@ -238,7 +307,7 @@ router.get(
       ok: true,
       data: activities,
       meta: { page: filters.page, limit: filters.limit, total, totalPages: Math.ceil(total / filters.limit) },
-    });
+});
   })
 );
 

@@ -582,6 +582,44 @@ export const spec = {
         },
       },
     },
+    '/api/boards/search': {
+      get: {
+        tags: ['Boards'],
+        summary: 'Global search across all accessible boards, cards, lists, and comments',
+        security: [bearerAuth],
+        parameters: [
+          { name: 'q', in: 'query', required: true, schema: { type: 'string', minLength: 1, maxLength: 200 }, description: 'Search query' },
+          { name: 'type', in: 'query', schema: { type: 'string', enum: ['all', 'boards', 'cards', 'lists', 'comments'], default: 'all' }, description: 'Entity type to search' },
+          { name: 'page', in: 'query', schema: { type: 'integer', default: 1 } },
+          { name: 'limit', in: 'query', schema: { type: 'integer', default: 20, maximum: 50 } },
+        ],
+        responses: {
+          '200': {
+            description: 'Search results grouped by entity type',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    ok: { type: 'boolean' },
+                    data: {
+                      type: 'object',
+                      properties: {
+                        boards: { type: 'array', items: { type: 'object', properties: { id: { type: 'string' }, name: { type: 'string' }, description: { type: 'string' } } } },
+                        cards: { type: 'array', items: { type: 'object', properties: { id: { type: 'string' }, title: { type: 'string' }, boardId: { type: 'string' }, boardName: { type: 'string' } } } },
+                        lists: { type: 'array', items: { type: 'object', properties: { id: { type: 'string' }, name: { type: 'string' }, boardId: { type: 'string' } } } },
+                        comments: { type: 'array', items: { type: 'object', properties: { id: { type: 'string' }, content: { type: 'string' }, cardId: { type: 'string' } } } },
+                      },
+                    },
+                    meta: { type: 'object', properties: { q: { type: 'string' }, type: { type: 'string' }, page: { type: 'integer' }, limit: { type: 'integer' }, total: { type: 'integer' } } },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
     '/api/boards/{boardId}/members': {
       get: {
         tags: ['Board Members'],
