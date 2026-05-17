@@ -45,6 +45,6 @@ ENV PORT=3001
 EXPOSE 3001
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-  CMD node -e "fetch('http://localhost:3001/health').then(r => r.json()).then(d => process.exit(d.status === 'ok' ? 0 : 1)).catch(() => process.exit(1))"
+  CMD node -e "fetch('http://localhost:4000/health').then(r => r.json()).then(d => process.exit(d.status === 'ok' ? 0 : 1)).catch(() => process.exit(1))"
 
 CMD ["node", "dist/index.js"]

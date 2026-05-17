@@ -111,9 +111,21 @@ export async function fetchBoards(): Promise<{ ok: true; data: Board[] }> {
 }
 
 export async function fetchBoard(boardId: string): Promise<{ ok: true; data: Board } | { ok: false; error: { code: string; message: string } }> {
-  const res = await apiClient<any>(`/api/boards/${boardId}`)
-  if (!res.ok) return { ok: false, error: res.error }
-  return { ok: true, data: transformBoard(res.data) }
+  const [boardRes, cardsRes] = await Promise.all([
+    apiClient<any>(`/api/boards/${boardId}`),
+    apiClient<any[]>(`/api/cards/search?boardId=${boardId}&page=1&limit=100`),
+  ])
+  if (!boardRes.ok) return { ok: false, error: boardRes.error }
+
+  const board = transformBoard(boardRes.data)
+  if (cardsRes.ok) {
+    const cards = cardsRes.data.map(transformCard)
+    board.lists = board.lists.map((l) => ({
+      ...l,
+      cards: cards.filter((c) => c.listId === l.id).sort((a, b) => a.position - b.position),
+    }))
+  }
+  return { ok: true, data: board }
 }
 
 export async function createBoard(name: string, description?: string, template?: string): Promise<{ ok: true; data: Board }> {
@@ -210,72 +222,16 @@ export async function deleteCard(cardId: string): Promise<{ ok: true }> {
   return { ok: true }
 }
 
-export async function toggleLabel(cardId: string, label: Label): Promise<{ ok: true; data: Card }> {
-  const boardRes = await fetchBoards()
-  let card: Card | undefined
-  for (const b of boardRes.data) {
-    for (const l of b.lists) {
-      card = l.cards.find(c => c.id === cardId)
-      if (card) break
-    }
-    if (card) break
-  }
-
-  if (card?.labels.some(l => l.id === label.id)) {
-    await apiClient(`/api/cards/${cardId}/labels/${label.id}`, { method: 'DELETE' })
-  } else {
+export async function toggleLabel(cardId: string, label: Label, add: boolean): Promise<{ ok: true }> {
+  if (add) {
     await apiClient(`/api/cards/${cardId}/labels`, {
       method: 'POST',
       body: JSON.stringify({ name: label.name, color: NAME_COLOR_MAP[label.color] || '#3B82F6' }),
     })
+  } else {
+    await apiClient(`/api/cards/${cardId}/labels/${label.id}`, { method: 'DELETE' })
   }
-
-  const updated = await fetchBoard((await fetchBoards()).data[0]?.id || '')
-  if (updated.ok) {
-    for (const l of updated.data.lists) {
-      const found = l.cards.find(c => c.id === cardId)
-      if (found) return { ok: true, data: found }
-    }
-  }
-  return { ok: true, data: card || { id: cardId, listId: '', title: '', position: 0, labels: [], assignees: [], comments: [], createdAt: '', updatedAt: '' } }
-}
-
-export async function addChecklistItem(cardId: string, text: string): Promise<{ ok: true; data: { id: string; text: string; done: boolean } }> {
-  const item = { id: `check-${Date.now()}`, text, done: false }
-  const card = await fetchCardWithLabels(cardId)
-  if (card) {
-    const checklist = [...(card.checklist || []), item]
-    await apiClient(`/api/cards/${cardId}`, {
-      method: 'PUT',
-      body: JSON.stringify({ checklist }),
-    })
-  }
-  return { ok: true, data: item }
-}
-
-async function fetchCardWithLabels(cardId: string): Promise<Card | null> {
-  const boardRes = await apiClient<any[]>(`/api/boards`)
-  if (!boardRes.ok) return null
-  for (const b of boardRes.data as any[]) {
-    for (const l of b.lists || []) {
-      for (const c of l.cards || []) {
-        if (c.id === cardId) return transformCard(c)
-      }
-    }
-  }
-  return null
-}
-
-export async function toggleChecklistItem(_cardId: string, itemId: string, done: boolean): Promise<{ ok: true; data: { id: string; done: boolean } }> {
-  const card = await fetchCardWithLabels(_cardId)
-  if (card) {
-    const checklist = (card.checklist || []).map((ci) => ci.id === itemId ? { ...ci, done } : ci)
-    await apiClient(`/api/cards/${_cardId}`, {
-      method: 'PUT',
-      body: JSON.stringify({ checklist }),
-    })
-  }
-  return { ok: true, data: { id: itemId, done } }
+  return { ok: true }
 }
 
 export async function moveCard(cardId: string, fromListId: string, toListId: string, newPosition: number): Promise<{ ok: true; data: { id: string; listId: string; position: number; updatedAt: string } }> {
@@ -315,31 +271,17 @@ export async function addComment(cardId: string, content: string): Promise<{ ok:
   }
 }
 
-export async function addCardAssignee(cardId: string, member: BoardMember): Promise<{ ok: true; data: Card } | { ok: false; error: { code: string; message: string } }> {
+export async function addCardAssignee(cardId: string, member: BoardMember): Promise<{ ok: true }> {
   await apiClient(`/api/cards/${cardId}/assignees`, {
     method: 'POST',
     body: JSON.stringify({ userId: member.id }),
   })
-  const boardRes = await fetchBoards()
-  for (const b of boardRes.data) {
-    for (const l of b.lists) {
-      const card = l.cards.find(c => c.id === cardId)
-      if (card) return { ok: true, data: card }
-    }
-  }
-  return { ok: false, error: { code: 'NOT_FOUND', message: 'Card not found' } }
+  return { ok: true }
 }
 
-export async function removeCardAssignee(cardId: string, memberId: string): Promise<{ ok: true; data: Card } | { ok: false; error: { code: string; message: string } }> {
+export async function removeCardAssignee(cardId: string, memberId: string): Promise<{ ok: true }> {
   await apiClient(`/api/cards/${cardId}/assignees/${memberId}`, { method: 'DELETE' })
-  const boardRes = await fetchBoards()
-  for (const b of boardRes.data) {
-    for (const l of b.lists) {
-      const card = l.cards.find(c => c.id === cardId)
-      if (card) return { ok: true, data: card }
-    }
-  }
-  return { ok: false, error: { code: 'NOT_FOUND', message: 'Card not found' } }
+  return { ok: true }
 }
 
 export async function addBoardMember(boardId: string, member: BoardMember): Promise<{ ok: true; data: Board } | { ok: false; error: { code: string; message: string } }> {
@@ -356,6 +298,27 @@ export async function removeBoardMember(boardId: string, memberId: string): Prom
   const res = await apiClient<any>(`/api/boards/${boardId}/members/${memberId}`, { method: 'DELETE' })
   if (!res.ok) return { ok: false, error: res.error }
   return { ok: true, data: transformBoard(res.data) }
+}
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'
+
+function getToken(): string | null {
+  if (typeof window === 'undefined') return null
+  try { return localStorage.getItem('kanban-token') } catch { return null }
+}
+
+export async function uploadAttachment(cardId: string, file: File): Promise<{ ok: true; data: Record<string, unknown> } | { ok: false; error: { code: string; message: string } }> {
+  const fd = new FormData()
+  fd.append('file', file)
+  const token = getToken()
+  const res = await fetch(`${API_BASE_URL}/api/cards/${cardId}/attachments`, {
+    method: 'POST',
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    body: fd,
+  })
+  const json = await res.json().catch(() => null)
+  if (!res.ok) return { ok: false, error: json?.error || { code: 'HTTP_ERROR', message: 'Upload failed' } }
+  return { ok: true, data: json.data }
 }
 
 export async function fetchActivities(boardId: string): Promise<{ ok: true; data: Activity[] }> {

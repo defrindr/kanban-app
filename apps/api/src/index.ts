@@ -6,7 +6,7 @@ if (!process.env.JWT_SECRET || process.env.JWT_SECRET === 'your-secret-key-here'
   process.exit(1);
 }
 
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 4000;
 httpServer.listen(PORT, () => {
   logger.info({ port: PORT }, `Server running on port ${PORT}`);
 });

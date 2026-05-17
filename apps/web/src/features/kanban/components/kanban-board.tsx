@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { DndContext, DragEndEvent, closestCorners, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { SortableContext, horizontalListSortingStrategy } from '@dnd-kit/sortable'
 import { useBoardStore } from '../stores/board-store'
@@ -8,10 +8,10 @@ import { useDarkMode } from '@/shared/hooks/use-dark-mode'
 import {
   fetchBoard, createCard, createList, updateList, deleteList,
   updateCard, deleteCard, addComment, toggleLabel as apiToggleLabel,
-  addChecklistItem as apiAddChecklist, toggleChecklistItem as apiToggleChecklist,
   fetchActivities, updateBoard, moveCard as apiMoveCard,
   addCardAssignee as apiAddAssignee, removeCardAssignee as apiRemoveAssignee,
   addBoardMember as apiAddBoardMember, removeBoardMember as apiRemoveBoardMember,
+  uploadAttachment,
 } from '../api/mock-api'
 import { KanbanHeader } from './kanban-header'
 import { KanbanList } from './kanban-list'
@@ -37,6 +37,7 @@ export function KanbanBoard({ boardId }: Props) {
   const toast = useToast()
 
   const [selectedCard, setSelectedCard] = useState<Card | null>(null)
+  const selectedCardRef = useRef<Card | null>(null)
   const [rightTab, setRightTab] = useState<'settings' | 'activity'>('activity')
   const [showRight, setShowRight] = useState(false)
   const [showMobileMenu, setShowMobileMenu] = useState(false)
@@ -46,9 +47,23 @@ export function KanbanBoard({ boardId }: Props) {
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }))
 
+  function updateSelectedCardRef(card: Card | null) {
+    selectedCardRef.current = card
+    setSelectedCard(card)
+  }
+
   async function refreshBoard() {
     const res = await fetchBoard(boardId)
-    if (res.ok) setCurrentBoard(res.data)
+    if (res.ok) {
+      setCurrentBoard(res.data)
+      const curr = selectedCardRef.current
+      if (curr) {
+        for (const l of res.data.lists) {
+          const found = l.cards.find(c => c.id === curr.id)
+          if (found) { setSelectedCard(found); break }
+        }
+      }
+    }
   }
 
   useEffect(() => {
@@ -110,20 +125,12 @@ export function KanbanBoard({ boardId }: Props) {
     refreshBoard()
   }, [])
 
-  const handleToggleLabel = useCallback(async (cardId: string, label: Label) => {
-    await apiToggleLabel(cardId, label)
+  const handleToggleLabel = useCallback(async (cardId: string, label: Label, add: boolean) => {
+    await apiToggleLabel(cardId, label, add)
     refreshBoard()
   }, [])
 
-  const handleAddChecklistItem = useCallback(async (cardId: string, text: string) => {
-    const res = await apiAddChecklist(cardId, text)
-    if (res.ok) refreshBoard()
-  }, [])
 
-  const handleToggleChecklistItem = useCallback(async (cardId: string, itemId: string, done: boolean) => {
-    await apiToggleChecklist(cardId, itemId, done)
-    refreshBoard()
-  }, [])
 
   async function handleAddCard(listId: string, title: string) {
     const res = await createCard(listId, title)
@@ -159,6 +166,12 @@ export function KanbanBoard({ boardId }: Props) {
   async function handleRemoveAssignee(cardId: string, memberId: string) {
     const res = await apiRemoveAssignee(cardId, memberId)
     if (res.ok) refreshBoard()
+  }
+
+  async function handleAddAttachment(cardId: string, file: File) {
+    const res = await uploadAttachment(cardId, file)
+    if (res.ok) refreshBoard()
+    else toast.error(res.error?.message || 'Failed to upload')
   }
 
   async function handleAddBoardMember(member: BoardMember) {
@@ -249,7 +262,7 @@ export function KanbanBoard({ boardId }: Props) {
                       key={list.id}
                       list={list}
                       onAddCard={handleAddCard}
-                      onCardClick={(card) => setSelectedCard(card)}
+                      onCardClick={(card) => updateSelectedCardRef(card)}
                       onRenameList={handleRenameList}
                       onDeleteList={handleDeleteList}
                       onUpdateCard={handleUpdateCard}
@@ -288,13 +301,12 @@ export function KanbanBoard({ boardId }: Props) {
 
       <CardDetailModal
         card={selectedCard}
-        onClose={() => setSelectedCard(null)}
+        onClose={() => updateSelectedCardRef(null)}
         onAddComment={handleAddComment}
         onUpdateCard={handleUpdateCard}
         onToggleLabel={handleToggleLabel}
         onDeleteCard={handleDeleteCard}
-        onAddChecklistItem={handleAddChecklistItem}
-        onToggleChecklistItem={handleToggleChecklistItem}
+        onAddAttachment={handleAddAttachment}
         onAddAssignee={handleAddAssignee}
         onRemoveAssignee={handleRemoveAssignee}
         boardMembers={currentBoard.members}

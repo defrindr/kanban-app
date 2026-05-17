@@ -4,7 +4,7 @@ import { apiClient } from '../api/client'
 const mockFetch = vi.fn()
 global.fetch = mockFetch
 
-const API_URL = 'http://localhost:3001'
+const API_URL = 'http://localhost:4000'
 
 beforeEach(() => {
   vi.clearAllMocks()

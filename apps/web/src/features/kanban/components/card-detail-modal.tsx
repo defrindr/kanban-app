@@ -1,23 +1,10 @@
 'use client'
 
-import { useState } from 'react'
-import type { Card, Label, Attachment, BoardMember } from '../types/kanban'
+import { useState, useRef } from 'react'
+import type { Card, Label, BoardMember } from '../types/kanban'
 import { LABEL_OPTIONS } from '../types/kanban'
 
-interface Props {
-  card: Card | null
-  onClose: () => void
-  onAddComment: (cardId: string, content: string) => void
-  onUpdateCard?: (cardId: string, data: { title?: string; description?: string; dueDate?: string | null; coverColor?: string | null; archived?: boolean }) => void
-  onToggleLabel?: (cardId: string, label: Label) => void
-  onDeleteCard?: (cardId: string) => void
-  onAddChecklistItem?: (cardId: string, text: string) => void
-  onToggleChecklistItem?: (cardId: string, itemId: string, done: boolean) => void
-  onAddAttachment?: (cardId: string, attachment: { name: string; url: string; type: string }) => void
-  onAddAssignee?: (cardId: string, member: BoardMember) => void
-  onRemoveAssignee?: (cardId: string, memberId: string) => void
-  boardMembers?: BoardMember[]
-}
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'
 
 const labelColorMap: Record<string, string> = {
   blue: 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400',
@@ -37,7 +24,20 @@ const coverColors = [
   { name: 'Red', value: 'red' },
 ]
 
-export function CardDetailModal({ card, onClose, onAddComment, onUpdateCard, onToggleLabel, onDeleteCard, onAddChecklistItem, onToggleChecklistItem, onAddAttachment, onAddAssignee, onRemoveAssignee, boardMembers }: Props) {
+interface Props {
+  card: Card | null
+  onClose: () => void
+  onAddComment: (cardId: string, content: string) => void
+  onUpdateCard?: (cardId: string, data: Record<string, unknown>) => void
+  onToggleLabel?: (cardId: string, label: Label, add: boolean) => void
+  onDeleteCard?: (cardId: string) => void
+  onAddAttachment?: (cardId: string, file: File) => void
+  onAddAssignee?: (cardId: string, member: BoardMember) => void
+  onRemoveAssignee?: (cardId: string, memberId: string) => void
+  boardMembers?: BoardMember[]
+}
+
+export function CardDetailModal({ card, onClose, onAddComment, onUpdateCard, onToggleLabel, onDeleteCard, onAddAttachment, onAddAssignee, onRemoveAssignee, boardMembers }: Props) {
   const [newComment, setNewComment] = useState('')
   const [editingTitle, setEditingTitle] = useState(false)
   const [editTitle, setEditTitle] = useState('')
@@ -46,10 +46,9 @@ export function CardDetailModal({ card, onClose, onAddComment, onUpdateCard, onT
   const [showLabels, setShowLabels] = useState(false)
   const [showCover, setShowCover] = useState(false)
   const [checklistText, setChecklistText] = useState('')
-  const [attachUrl, setAttachUrl] = useState('')
-  const [attachName, setAttachName] = useState('')
   const [showAttachForm, setShowAttachForm] = useState(false)
   const [showAssigneePicker, setShowAssigneePicker] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   if (!card) return null
 
@@ -70,7 +69,10 @@ export function CardDetailModal({ card, onClose, onAddComment, onUpdateCard, onT
 
   const handleAddChecklist = () => {
     if (!checklistText.trim()) return
-    onAddChecklistItem?.(card.id, checklistText.trim()); setChecklistText('')
+    const item = { id: `check-${Date.now()}`, text: checklistText.trim(), done: false }
+    const updated = [...(card.checklist || []), item]
+    onUpdateCard?.(card.id, { checklist: updated })
+    setChecklistText('')
   }
 
   const handleSaveDueDate = (date: string | null) => {
@@ -81,11 +83,10 @@ export function CardDetailModal({ card, onClose, onAddComment, onUpdateCard, onT
     onUpdateCard?.(card.id, { coverColor: color })
   }
 
-  const handleAddAttachment = () => {
-    if (!attachUrl.trim()) return
-    if (!attachName.trim()) return
-    onAddAttachment?.(card.id, { name: attachName.trim(), url: attachUrl.trim(), type: 'link' })
-    setAttachUrl(''); setAttachName(''); setShowAttachForm(false)
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) { onAddAttachment?.(card.id, file); setShowAttachForm(false) }
+    if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
   const isOverdue = card.dueDate && new Date(card.dueDate) < new Date()
@@ -226,7 +227,10 @@ export function CardDetailModal({ card, onClose, onAddComment, onUpdateCard, onT
                 <div className="space-y-1.5 mb-3">
                   {(card.checklist || []).map((item) => (
                     <div key={item.id} className="flex items-center gap-2.5 px-0.5 py-1 hover:bg-gray-50 dark:hover:bg-gray-700/30 rounded-md transition-colors group">
-                      <input type="checkbox" checked={item.done} onChange={(e) => onToggleChecklistItem?.(card.id, item.id, e.target.checked)}
+                      <input type="checkbox" checked={item.done} onChange={(e) => {
+                        const updated = (card.checklist || []).map((ci) => ci.id === item.id ? { ...ci, done: e.target.checked } : ci)
+                        onUpdateCard?.(card.id, { checklist: updated })
+                      }}
                         className="w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500 cursor-pointer" />
                       <span className={`text-sm flex-1 ${item.done ? 'line-through text-gray-400 dark:text-gray-500' : 'text-gray-700 dark:text-gray-300'}`}>{item.text}</span>
                     </div>
@@ -249,7 +253,7 @@ export function CardDetailModal({ card, onClose, onAddComment, onUpdateCard, onT
                 {(card.attachments || []).length > 0 && (
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-3">
                     {(card.attachments || []).map((att) => (
-                      <a key={att.id} href={att.url} target="_blank" rel="noopener noreferrer"
+                      <a key={att.id} href={att.url.startsWith('/uploads') ? API_URL + att.url : att.url} target="_blank" rel="noopener noreferrer"
                         className="flex items-center gap-2 px-3 py-2.5 bg-gray-50 dark:bg-gray-700/50 border border-gray-100 dark:border-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors group">
                         <svg className="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                           <path strokeLinecap="round" strokeLinejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
@@ -261,11 +265,8 @@ export function CardDetailModal({ card, onClose, onAddComment, onUpdateCard, onT
                 )}
                 {showAttachForm && (
                   <div className="space-y-2 p-3 bg-gray-50 dark:bg-gray-700/30 border border-gray-100 dark:border-gray-700 rounded-lg">
-                    <input type="text" value={attachName} onChange={(e) => setAttachName(e.target.value)} placeholder="Link name"
-                      className="w-full px-3 py-2 text-sm bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white placeholder-gray-400" />
-                    <input type="url" value={attachUrl} onChange={(e) => setAttachUrl(e.target.value)} placeholder="https://..."
-                      className="w-full px-3 py-2 text-sm bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white placeholder-gray-400" />
-                    <button onClick={handleAddAttachment} disabled={!attachUrl.trim() || !attachName.trim()} className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg transition-colors disabled:opacity-50">Attach</button>
+                    <input ref={fileInputRef} type="file" onChange={handleFileChange}
+                      className="w-full text-sm text-gray-500 dark:text-gray-400 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-blue-50 dark:file:bg-blue-900/20 file:text-blue-700 dark:file:text-blue-300 hover:file:bg-blue-100 dark:hover:file:bg-blue-900/30" />
                   </div>
                 )}
               </div>
@@ -313,7 +314,10 @@ export function CardDetailModal({ card, onClose, onAddComment, onUpdateCard, onT
                     {LABEL_OPTIONS.map((l) => {
                       const active = card.labels.some((cl) => cl.id === l.name)
                       return (
-                        <button key={l.name} onClick={() => onToggleLabel?.(card.id, { id: l.name, name: l.name, color: l.color })}
+                        <button key={l.name} onClick={() => {
+                            const isActive = card.labels.some((cl) => cl.id === l.name)
+                            onToggleLabel?.(card.id, { id: l.name, name: l.name, color: l.color }, !isActive)
+                          }}
                           className={`px-2.5 py-1 text-[11px] font-semibold rounded-md transition-all ${active ? labelColorMap[l.color] + ' ring-2 ring-blue-500' : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'}`}>{l.name}</button>
                       )
                     })}

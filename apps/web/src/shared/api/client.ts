@@ -1,7 +1,7 @@
-import { camelizeResponse, snakeifyRequest } from './case-transform'
+import { camelizeResponse } from './case-transform'
 import type { ApiResponse, ApiError } from './response'
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'
 
 type RequestOptions = RequestInit & {
   next?: NextFetchRequestConfig
@@ -33,9 +33,7 @@ export async function apiClient<T>(
   const token = getToken()
   if (token) headers['Authorization'] = `Bearer ${token}`
 
-  const body = options.body && typeof options.body === 'string'
-    ? JSON.stringify(snakeifyRequest(JSON.parse(options.body)))
-    : options.body
+  const body = options.body
 
   const response = await fetch(`${API_BASE_URL}${path}`, {
     ...options,
