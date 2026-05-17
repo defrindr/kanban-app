@@ -1,5 +1,9 @@
-import { prisma } from '../app.js';
+import { prisma, io } from '../app.js';
 import type { ActivityAction, EntityType, Prisma } from '@prisma/client';
+
+const ACTIVITY_INCLUDE = {
+  user: { select: { id: true, name: true, avatar: true } },
+};
 
 export async function logActivity(params: {
   boardId: string;
@@ -9,5 +13,10 @@ export async function logActivity(params: {
   entityId: string;
   metadata?: Prisma.InputJsonValue;
 }) {
-  await prisma.activity.create({ data: params });
+  const activity = await prisma.activity.create({
+    data: params,
+    include: ACTIVITY_INCLUDE,
+  });
+
+  io.to(`board:${params.boardId}`).emit('activity:created', activity);
 }

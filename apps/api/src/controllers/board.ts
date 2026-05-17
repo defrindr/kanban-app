@@ -17,7 +17,13 @@ const router = Router();
 const MEMBER_SELECT = { id: true, email: true, name: true, avatar: true };
 const MEMBER_INCLUDE = { include: { user: { select: MEMBER_SELECT } } };
 
-const BOARD_LIST_INCLUDE = { members: MEMBER_INCLUDE };
+const BOARD_LIST_INCLUDE = {
+  members: MEMBER_INCLUDE,
+  lists: {
+    select: { id: true, title: true, position: true },
+    orderBy: { position: 'asc' as const },
+  },
+};
 
 const BOARD_DETAIL_INCLUDE = {
   members: MEMBER_INCLUDE,

@@ -44,6 +44,28 @@ export function RightSidebar({ activeTab, onTabChange, activities, board, onUpda
     return name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2)
   }
 
+  function formatActivity(a: Activity): string {
+    const name = a.entityName || a.entityType
+    switch (a.action) {
+      case 'created':
+        return a.entityType === 'comment'
+          ? `commented on ${name}`
+          : `created ${a.entityType} "${name}"`
+      case 'moved':
+        return `moved "${name}" from "${a.fromListTitle || a.fromListId || '?'}" to "${a.toListTitle || a.toListId || '?'}"`
+      case 'updated':
+        return a.entityType === 'comment'
+          ? 'updated a comment'
+          : `updated ${a.entityType} "${name}"`
+      case 'deleted':
+        return a.entityType === 'comment'
+          ? 'deleted a comment'
+          : `deleted ${a.entityType} "${name}"`
+      default:
+        return a.action
+    }
+  }
+
   function handleSave() {
     onUpdateBoard?.({ name: boardName, description: boardDesc, visibility })
   }
@@ -77,8 +99,7 @@ export function RightSidebar({ activeTab, onTabChange, activities, board, onUpda
                   <div className="flex-1 min-w-0">
                     <p className="text-sm text-gray-800 dark:text-gray-200 leading-snug">
                       <span className="font-medium text-gray-900 dark:text-gray-100">{activity.userName}</span>
-                      <span className="text-gray-500 dark:text-gray-400"> {activity.action} </span>
-                      <span className="font-medium text-blue-600 dark:text-blue-400">{activity.entityName || activity.entityType}</span>
+                      <span className="text-gray-500 dark:text-gray-400"> {formatActivity(activity)}</span>
                     </p>
                     <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
                       {new Date(activity.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}

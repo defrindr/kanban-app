@@ -83,7 +83,7 @@ const actionMap: Record<string, string> = {
   MOVE: 'moved',
 }
 
-function transformActivity(a: any): Activity {
+export function transformActivity(a: any): Activity {
   return {
     id: a.id,
     boardId: a.boardId,

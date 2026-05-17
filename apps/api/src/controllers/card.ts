@@ -65,6 +65,7 @@ router.get(
         skip,
         take: limit,
         include: {
+          list: { select: { id: true, title: true, boardId: true } },
           comments: { include: { user: { select: { id: true, name: true, avatar: true } } } },
           cardLabels: true,
           cardAssignees: { include: { user: { select: { id: true, email: true, name: true, avatar: true } } } },

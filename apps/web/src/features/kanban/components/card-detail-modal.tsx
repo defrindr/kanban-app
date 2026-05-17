@@ -95,15 +95,15 @@ export function CardDetailModal({ card, onClose, onAddComment, onUpdateCard, onT
   const checklistTotal = card.checklist?.length || 0
   const checklistDone = card.checklist?.filter(i => i.done).length || 0
 
-  const listName = (id: string) => boardLists?.find(l => l.id === id)?.title || id
   const cardActivities = (activities || []).filter(a => a.entityType === 'card' && a.entityId === card.id)
   function formatActivity(a: Activity): string {
-    if (a.action === 'created') return 'created this card'
-    if (a.action === 'moved') return `moved from "${listName(a.fromListId || '')}" to "${listName(a.toListId || '')}"`
-    if (a.action === 'updated') return 'updated the card'
-    if (a.action === 'deleted') return 'deleted this card'
-    if (a.action === 'commented') return 'commented'
-    return a.action
+    switch (a.action) {
+      case 'created': return 'created this card'
+      case 'moved': return `moved from "${a.fromListTitle || a.fromListId || '?'}" to "${a.toListTitle || a.toListId || '?'}"`
+      case 'updated': return a.entityName ? `updated "${a.entityName}"` : 'updated the card'
+      case 'deleted': return 'deleted this card'
+      default: return a.action
+    }
   }
 
   return (

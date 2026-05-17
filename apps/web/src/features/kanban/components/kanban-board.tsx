@@ -14,6 +14,7 @@ import {
   addBoardMember as apiAddBoardMember, removeBoardMember as apiRemoveBoardMember,
   uploadAttachment, deleteBoard as apiDeleteBoard,
   fetchNotifications, markNotificationRead as apiMarkRead,
+  transformActivity,
 } from '../api/mock-api'
 import { apiClient } from '@/shared/api/client'
 import { KanbanHeader } from './kanban-header'
@@ -104,6 +105,9 @@ export function KanbanBoard({ boardId }: Props) {
       sock.on('list:deleted', refreshBoard)
       sock.on('user:presence', (data: { boardId: string; users: unknown[] }) => {
         if (data.boardId === boardId) setOnlineCount(data.users.length)
+      })
+      sock.on('activity:created', (activity: any) => {
+        setActivities([transformActivity(activity), ...useBoardStore.getState().activities])
       })
       sock.on('notification:new', (notif: Notification) => {
         setNotifications([notif, ...useBoardStore.getState().notifications])
