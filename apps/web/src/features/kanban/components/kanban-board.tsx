@@ -302,6 +302,7 @@ export function KanbanBoard({ boardId }: Props) {
         onMarkRead={handleMarkRead}
         showArchived={showArchived}
         onToggleArchived={() => setShowArchived(!showArchived)}
+        onGoBack={() => router.push('/dashboard')}
       />
 
       <div className="flex-1 flex overflow-hidden">
