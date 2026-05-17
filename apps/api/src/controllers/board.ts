@@ -1,13 +1,13 @@
 import { Router } from 'express';
-import { prisma, io } from '../app.js';
+import { prisma } from '../app.js';
 import { validateBody, validateQuery } from '../middleware/validate.js';
 import { asyncHandler } from '../middleware/error-handler.js';
 import { AppError } from '../errors.js';
-import { CreateBoardSchema, UpdateBoardSchema, PaginationSchema, BoardSearchSchema } from '../utils/validation.js';
+import { CreateBoardSchema, UpdateBoardSchema, BoardSearchSchema } from '../utils/validation.js';
 import { cacheGet, cacheSet, cacheDel } from '../utils/cache.js';
 import { notifyBoard } from '../utils/notifications.js';
 import { logActivity } from '../utils/activity.js';
-import { PAGINATION, FIELD_LENGTHS, ANALYTICS, BOARD_ROLES, ENTITY_TYPES, ACTIVITY_ACTIONS, SEARCH_TYPES } from '../config/constants.js';
+import { PAGINATION, FIELD_LENGTHS, SEARCH_TYPES } from '../config/constants.js';
 import { z } from 'zod';
 import { ActivityAction as PrismaActivityAction, EntityType as PrismaEntityType, Prisma } from '@prisma/client';
 

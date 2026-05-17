@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { prisma, io } from '../app.js';
+import { prisma } from '../app.js';
 import { validateBody, validateQuery } from '../middleware/validate.js';
 import { asyncHandler } from '../middleware/error-handler.js';
 import { CreateListSchema, UpdateListSchema, PaginationSchema } from '../utils/validation.js';

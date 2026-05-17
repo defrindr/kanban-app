@@ -13,7 +13,7 @@ export interface StorageProvider {
 class LocalStorage implements StorageProvider {
   constructor(private baseDir: string) {
     if (!existsSync(baseDir)) {
-      mkdir(baseDir, { recursive: true });
+      void mkdir(baseDir, { recursive: true });
     }
   }
 
@@ -27,7 +27,9 @@ class LocalStorage implements StorageProvider {
   async delete(key: string): Promise<void> {
     try {
       await unlink(join(this.baseDir, key));
-    } catch {}
+    } catch {
+      // Ignore: file may not exist
+    }
   }
 
   async getUrl(key: string): Promise<string> {
@@ -68,7 +70,9 @@ class S3Storage implements StorageProvider {
         Bucket: this.bucket,
         Key: key,
       }));
-    } catch {}
+    } catch {
+      // Ignore: delete may fail if object doesn't exist
+    }
   }
 
   async getUrl(key: string): Promise<string> {

@@ -24,15 +24,18 @@ export default [
     },
     rules: {
       // TypeScript rules
-      '@typescript-eslint/no-explicit-any': 'warn',
-      '@typescript-eslint/no-unused-vars': [
-        'error',
-        { argsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_' },
-      ],
-      '@typescript-eslint/explicit-module-boundary-types': 'off',
-      '@typescript-eslint/no-floating-promises': 'warn',
-      '@typescript-eslint/no-misused-promises': 'warn',
-      '@typescript-eslint/await-thenable': 'warn',
+       '@typescript-eslint/no-explicit-any': 'warn',
+       '@typescript-eslint/no-unused-vars': [
+         'error',
+         { argsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_' },
+       ],
+       '@typescript-eslint/explicit-module-boundary-types': 'off',
+       '@typescript-eslint/no-floating-promises': 'warn',
+       '@typescript-eslint/no-misused-promises': [
+         'warn',
+         { checksConditionals: true, checksVoidReturn: false },
+       ],
+       '@typescript-eslint/await-thenable': 'warn',
 
       // Code quality
       'max-lines-per-function': ['warn', { max: 50, skipBlankLines: true, skipComments: true }],

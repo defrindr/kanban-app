@@ -1,13 +1,12 @@
 import { Router } from 'express';
-import { prisma, io } from '../app.js';
+import { prisma } from '../app.js';
 import { validateBody } from '../middleware/validate.js';
 import { asyncHandler } from '../middleware/error-handler.js';
 import { AppError } from '../errors.js';
-import { AddMemberSchema, UpdateMemberRoleSchema } from '../utils/validation.js';
+import { UpdateMemberRoleSchema } from '../utils/validation.js';
 import { notifyBoard } from '../utils/notifications.js';
 import { logActivity } from '../utils/activity.js';
 import { sendEmail, boardInviteEmail } from '../utils/email.js';
-import type { BoardRole } from '@prisma/client';
 
 const router = Router({ mergeParams: true });
 
@@ -57,7 +56,8 @@ router.post(
 
     await requireAdmin(boardId, req.user!.userId);
 
-    let { userId, role, name, email } = req.body;
+    let { userId } = req.body;
+    const { role, name, email } = req.body;
 
     if (!userId && (!name || !email)) {
       throw new AppError('VALIDATION_FAILED', 'Provide userId or name+email', 422);
@@ -102,7 +102,7 @@ router.post(
     const board = await prisma.board.findUnique({ where: { id: boardId }, select: { name: true } });
     if (board) {
       const emailOpts = boardInviteEmail(req.user!.email, board.name, `${process.env.APP_URL || 'http://localhost:4000'}/boards/${boardId}`);
-      sendEmail({ to: user.email, ...emailOpts });
+      void sendEmail({ to: user.email, ...emailOpts });
     }
 
     res.status(201).json({ ok: true, data: member });

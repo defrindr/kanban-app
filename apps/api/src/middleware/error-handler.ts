@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { isAppError, AppError } from '../errors.js';
+import { isAppError } from '../errors.js';
 import { logger } from '../utils/logger.js';
 
 interface ErrorResponse {

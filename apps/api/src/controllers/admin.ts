@@ -3,7 +3,7 @@ import { prisma } from '../app.js';
 import { asyncHandler } from '../middleware/error-handler.js';
 import { adminGuard } from '../middleware/auth.js';
 import { AppError } from '../errors.js';
-import { PAGINATION, FIELD_LENGTHS, ANALYTICS, ENTITY_TYPES, ACTIVITY_ACTIONS } from '../config/constants.js';
+import { PAGINATION, ANALYTICS, ENTITY_TYPES, ACTIVITY_ACTIONS } from '../config/constants.js';
 import { z } from 'zod';
 import { Prisma } from '@prisma/client';
 

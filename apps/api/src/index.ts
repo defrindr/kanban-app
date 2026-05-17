@@ -1,4 +1,4 @@
-import { httpServer, prisma, io, redis } from './app.js';
+import { httpServer, prisma, redis } from './app.js';
 import { logger } from './utils/logger.js';
 
 if (!process.env.JWT_SECRET || process.env.JWT_SECRET === 'your-secret-key-here') {

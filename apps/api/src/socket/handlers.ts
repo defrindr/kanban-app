@@ -1,6 +1,6 @@
 import { Server, Socket } from 'socket.io';
 import { prisma } from '../app.js';
-import { logger } from '../utils/logger.js';
+
 import { checkSocketRateLimit } from '../middleware/socket-rate-limit.js';
 import {
   BoardJoinSchema, BoardLeaveSchema,
@@ -79,7 +79,7 @@ export function registerSocketHandlers(io: Server) {
           include: { cards: true },
         });
         io.to(`board:${list.boardId}`).emit('list:created', list);
-      } catch (err) {
+      } catch (_err) {
         socket.emit('list:error', { ok: false, error: { code: 'INTERNAL_ERROR', message: 'Failed to create list' } });
       }
     }));
@@ -97,7 +97,7 @@ export function registerSocketHandlers(io: Server) {
           data: { title },
         });
         io.to(`board:${list.boardId}`).emit('list:updated', list);
-      } catch (err) {
+      } catch (_err) {
         socket.emit('list:error', { ok: false, error: { code: 'NOT_FOUND', message: 'List not found' } });
       }
     }));
@@ -116,7 +116,7 @@ export function registerSocketHandlers(io: Server) {
         }
         await prisma.list.delete({ where: { id: list.id } });
         io.to(`board:${list.boardId}`).emit('list:deleted', list.id);
-      } catch (err) {
+      } catch (_err) {
         socket.emit('list:error', { ok: false, error: { code: 'INTERNAL_ERROR', message: 'Failed to delete list' } });
       }
     }));
@@ -138,7 +138,7 @@ export function registerSocketHandlers(io: Server) {
           include: { comments: true },
         });
         io.to(`board:${list.boardId}`).emit('card:created', card);
-      } catch (err) {
+      } catch (_err) {
         socket.emit('card:error', { ok: false, error: { code: 'INTERNAL_ERROR', message: 'Failed to create card' } });
       }
     }));
@@ -160,7 +160,7 @@ export function registerSocketHandlers(io: Server) {
         if (list) {
           io.to(`board:${list.boardId}`).emit('card:updated', card);
         }
-      } catch (err) {
+      } catch (_err) {
         socket.emit('card:error', { ok: false, error: { code: 'NOT_FOUND', message: 'Card not found' } });
       }
     }));
@@ -182,7 +182,7 @@ export function registerSocketHandlers(io: Server) {
         if (list) {
           io.to(`board:${list.boardId}`).emit('card:moved', { card, fromListId: parsed.data.fromListId, toListId, newPosition });
         }
-      } catch (err) {
+      } catch (_err) {
         socket.emit('card:error', { ok: false, error: { code: 'NOT_FOUND', message: 'Card not found' } });
       }
     }));
@@ -204,7 +204,7 @@ export function registerSocketHandlers(io: Server) {
         if (list) {
           io.to(`board:${list.boardId}`).emit('card:deleted', card.id);
         }
-      } catch (err) {
+      } catch (_err) {
         socket.emit('card:error', { ok: false, error: { code: 'INTERNAL_ERROR', message: 'Failed to delete card' } });
       }
     }));
@@ -231,7 +231,7 @@ export function registerSocketHandlers(io: Server) {
             io.to(`board:${list.boardId}`).emit('comment:added', comment);
           }
         }
-      } catch (err) {
+      } catch (_err) {
         socket.emit('comment:error', { ok: false, error: { code: 'INTERNAL_ERROR', message: 'Failed to add comment' } });
       }
     }));

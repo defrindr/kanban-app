@@ -146,36 +146,6 @@ const COMMENT_RESPONSE = {
   },
 };
 
-const ERROR_RESPONSE = {
-  type: 'object',
-  properties: {
-    ok: { type: 'boolean', enum: [false] },
-    error: {
-      type: 'object',
-      properties: {
-        code: { type: 'string' },
-        message: { type: 'string' },
-      },
-    },
-  },
-};
-
-const OK_RESPONSE = {
-  type: 'object',
-  properties: {
-    ok: { type: 'boolean', enum: [true] },
-    data: { type: 'object' },
-    meta: {
-      type: 'object',
-      properties: {
-        page: { type: 'integer' },
-        limit: { type: 'integer' },
-        total: { type: 'integer' },
-      },
-    },
-  },
-};
-
 const bearerAuth = { bearerAuth: [] };
 
 export const spec = {

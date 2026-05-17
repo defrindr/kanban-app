@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { prisma, io } from '../app.js';
+import { prisma } from '../app.js';
 import { validateBody, validateQuery } from '../middleware/validate.js';
 import { asyncHandler } from '../middleware/error-handler.js';
 import {
@@ -321,7 +321,7 @@ router.post(
       notifyUser(userId, 'notification:new', notif);
 
       const opts = assignmentNotificationEmail(req.user!.email, card.title, card.list.board.name, `${process.env.APP_URL || 'http://localhost:4000'}/boards/${boardId}/cards/${id}`);
-      sendEmail({ to: assignedUser.email, ...opts });
+      void sendEmail({ to: assignedUser.email, ...opts });
     }
 
     res.status(201).json({ ok: true, data: assignee });
@@ -362,7 +362,7 @@ router.post(
           .filter(e => e !== req.user!.email);
         if (emails.length > 0) {
           const opts = commentNotificationEmail(req.user!.email, cardInfo.title, cardInfo.list.board.name, content, `${process.env.APP_URL || 'http://localhost:4000'}/boards/${boardId2}/cards/${id}`);
-          for (const to of emails) sendEmail({ to, ...opts });
+          for (const to of emails) void sendEmail({ to, ...opts });
         }
       }
     }

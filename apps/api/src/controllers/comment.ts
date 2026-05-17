@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { prisma, io } from '../app.js';
+import { prisma } from '../app.js';
 import { validateBody, validateQuery } from '../middleware/validate.js';
 import { authGuard } from '../middleware/auth.js';
 import { asyncHandler } from '../middleware/error-handler.js';
@@ -96,7 +96,7 @@ router.post(
         .filter(e => e !== req.user!.email);
       if (emails.length > 0) {
         const opts = commentNotificationEmail(req.user!.email, cardInfo.title, cardInfo.list.board.name, content, `${process.env.APP_URL || 'http://localhost:4000'}/boards/${card.list.boardId}/cards/${cardId}`);
-        for (const to of emails) sendEmail({ to, ...opts });
+        for (const to of emails) void sendEmail({ to, ...opts });
       }
     }
 

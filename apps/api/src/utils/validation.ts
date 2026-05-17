@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { PAGINATION, FIELD_LENGTHS, BOARD_ROLES, SEARCH_TYPES } from '../config/constants.js';
+import { PAGINATION, FIELD_LENGTHS, BOARD_ROLES } from '../config/constants.js';
 
 export const CuidSchema = z.string().cuid();
 
