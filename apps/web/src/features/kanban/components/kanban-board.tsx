@@ -1,0 +1,304 @@
+'use client'
+
+import { useEffect, useState, useCallback } from 'react'
+import { DndContext, DragEndEvent, closestCorners, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
+import { SortableContext, horizontalListSortingStrategy } from '@dnd-kit/sortable'
+import { useBoardStore } from '../stores/board-store'
+import { useDarkMode } from '@/shared/hooks/use-dark-mode'
+import {
+  fetchBoard, createCard, createList, updateList, deleteList,
+  updateCard, deleteCard, addComment, toggleLabel as apiToggleLabel,
+  addChecklistItem as apiAddChecklist, toggleChecklistItem as apiToggleChecklist,
+  fetchActivities, updateBoard, moveCard as apiMoveCard,
+  addCardAssignee as apiAddAssignee, removeCardAssignee as apiRemoveAssignee,
+  addBoardMember as apiAddBoardMember, removeBoardMember as apiRemoveBoardMember,
+} from '../api/mock-api'
+import { KanbanHeader } from './kanban-header'
+import { KanbanList } from './kanban-list'
+import { CardDetailModal } from './card-detail-modal'
+import { RightSidebar } from './right-sidebar'
+import { useToast } from '@/shared/hooks/use-toast'
+import { connectSocket, joinBoard, leaveBoard, disconnectSocket, getSocket } from '@/shared/api/socket'
+import type { Card, Label, BoardMember } from '../types/kanban'
+
+interface Props {
+  boardId: string
+}
+
+export function KanbanBoard({ boardId }: Props) {
+  const { darkMode, setDarkMode } = useDarkMode()
+  const {
+    currentBoard, activities, notifications,
+    setCurrentBoard, setActivities, setNotifications,
+    moveCard: storeMoveCard,
+    markNotificationRead,
+  } = useBoardStore()
+
+  const toast = useToast()
+
+  const [selectedCard, setSelectedCard] = useState<Card | null>(null)
+  const [rightTab, setRightTab] = useState<'settings' | 'activity'>('activity')
+  const [showRight, setShowRight] = useState(false)
+  const [showMobileMenu, setShowMobileMenu] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [showArchived, setShowArchived] = useState(false)
+
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }))
+
+  async function refreshBoard() {
+    const res = await fetchBoard(boardId)
+    if (res.ok) setCurrentBoard(res.data)
+  }
+
+  useEffect(() => {
+    async function load() {
+      setLoading(true)
+      const res = await fetchBoard(boardId)
+      if (res.ok) {
+        setCurrentBoard(res.data)
+        const [actRes] = await Promise.all([
+          fetchActivities(boardId),
+        ])
+        if (actRes.ok) setActivities(actRes.data)
+      }
+      setLoading(false)
+    }
+    load()
+
+    const token = localStorage.getItem('kanban-token')
+    if (token) {
+      const sock = connectSocket(token)
+      joinBoard(boardId)
+
+      sock.on('card:created', refreshBoard)
+      sock.on('card:updated', refreshBoard)
+      sock.on('card:moved', refreshBoard)
+      sock.on('card:deleted', refreshBoard)
+      sock.on('list:created', refreshBoard)
+      sock.on('list:updated', refreshBoard)
+      sock.on('list:deleted', refreshBoard)
+    }
+
+    return () => {
+      leaveBoard(boardId)
+      disconnectSocket()
+    }
+  }, [boardId, setCurrentBoard, setActivities])
+
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event
+    if (!over || !currentBoard) return
+    const activeId = active.id as string
+    const overId = over.id as string
+    const activeList = currentBoard.lists.find((l) => l.cards.some((c) => c.id === activeId))
+    const overList = currentBoard.lists.find((l) => l.id === overId || l.cards.some((c) => c.id === overId))
+    if (!activeList || !overList || activeList.id === overList.id) return
+    const card = activeList.cards.find((c) => c.id === activeId)
+    if (!card) return
+    storeMoveCard(card, activeList.id, overList.id, overList.cards.length + 1)
+    apiMoveCard(activeId, activeList.id, overList.id, overList.cards.length + 1).then(refreshBoard)
+  }
+
+  const handleUpdateCard = useCallback(async (cardId: string, data: any) => {
+    const res = await updateCard(cardId, data)
+    if (res.ok) refreshBoard()
+  }, [])
+
+  const handleDeleteCard = useCallback(async (cardId: string) => {
+    await deleteCard(cardId)
+    refreshBoard()
+  }, [])
+
+  const handleToggleLabel = useCallback(async (cardId: string, label: Label) => {
+    await apiToggleLabel(cardId, label)
+    refreshBoard()
+  }, [])
+
+  const handleAddChecklistItem = useCallback(async (cardId: string, text: string) => {
+    const res = await apiAddChecklist(cardId, text)
+    if (res.ok) refreshBoard()
+  }, [])
+
+  const handleToggleChecklistItem = useCallback(async (cardId: string, itemId: string, done: boolean) => {
+    await apiToggleChecklist(cardId, itemId, done)
+    refreshBoard()
+  }, [])
+
+  async function handleAddCard(listId: string, title: string) {
+    const res = await createCard(listId, title)
+    if (res.ok) refreshBoard()
+  }
+
+  async function handleAddList() {
+    if (!currentBoard) return
+    const res = await createList(currentBoard.id, 'New List')
+    if (res.ok) refreshBoard()
+  }
+
+  async function handleRenameList(listId: string, title: string) {
+    const res = await updateList(listId, { title })
+    if (res.ok) refreshBoard()
+  }
+
+  async function handleDeleteList(listId: string) {
+    await deleteList(listId)
+    refreshBoard()
+  }
+
+  async function handleAddComment(cardId: string, content: string) {
+    const res = await addComment(cardId, content)
+    if (res.ok) refreshBoard()
+  }
+
+  async function handleAddAssignee(cardId: string, member: BoardMember) {
+    const res = await apiAddAssignee(cardId, member)
+    if (res.ok) refreshBoard()
+  }
+
+  async function handleRemoveAssignee(cardId: string, memberId: string) {
+    const res = await apiRemoveAssignee(cardId, memberId)
+    if (res.ok) refreshBoard()
+  }
+
+  async function handleAddBoardMember(member: BoardMember) {
+    if (!currentBoard) return
+    const res = await apiAddBoardMember(currentBoard.id, member)
+    if (res.ok) setCurrentBoard(res.data)
+    else toast.error(res.error?.message || 'Failed to add member')
+  }
+
+  async function handleRemoveBoardMember(memberId: string) {
+    if (!currentBoard) return
+    const res = await apiRemoveBoardMember(currentBoard.id, memberId)
+    if (res.ok) setCurrentBoard(res.data)
+    else toast.error(res.error?.message || 'Failed to remove member')
+  }
+
+  // Filter cards based on search
+  const filteredLists = currentBoard?.lists.map((list) => {
+    const q = searchQuery.toLowerCase().trim()
+    return {
+      ...list,
+      cards: list.cards
+        .filter((c) => showArchived ? true : !c.archived)
+        .filter((c) => !q || c.title.toLowerCase().includes(q) || c.description?.toLowerCase().includes(q) || c.labels.some((l) => l.name.toLowerCase().includes(q))),
+    }
+  }) ?? []
+
+  if (loading || !currentBoard) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-gray-50 dark:bg-[#0D1117]">
+        <div className="flex items-center gap-2 text-gray-400">
+          <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
+          <span className="text-sm">Loading board...</span>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="h-screen flex flex-col bg-gray-50 dark:bg-[#0D1117]">
+      <KanbanHeader
+        boardName={currentBoard.name}
+        members={currentBoard.members}
+        onlineCount={5}
+        notifications={notifications}
+        darkMode={darkMode}
+        onToggleDarkMode={() => setDarkMode(!darkMode)}
+        onToggleMenu={() => setShowMobileMenu(!showMobileMenu)}
+        onToggleRight={() => setShowRight(!showRight)}
+        showRight={showRight}
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        onOpenSettings={() => { setRightTab('settings'); setShowRight(true) }}
+        onMarkRead={markNotificationRead}
+        showArchived={showArchived}
+        onToggleArchived={() => setShowArchived(!showArchived)}
+      />
+
+      <div className="flex-1 flex overflow-hidden">
+        {showMobileMenu && (
+          <div className="fixed inset-0 z-40 lg:hidden">
+            <div className="absolute inset-0 bg-black/50" onClick={() => setShowMobileMenu(false)} />
+            <aside className="relative w-64 h-full bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 flex flex-col">
+              <div className="p-5 border-b border-gray-100 dark:border-gray-800">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center text-white text-xs font-bold">K</div>
+                  <span className="font-semibold text-gray-900 dark:text-white">KanbanPro</span>
+                </div>
+              </div>
+              <nav className="flex-1 p-3 overflow-y-auto">
+                <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider px-3 mb-2">Boards</div>
+                <div className="flex items-center gap-3 px-3 py-2 rounded-lg bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 text-sm font-medium">
+                  <div className="w-3 h-3 rounded-full bg-blue-500" />
+                  <span>{currentBoard.name}</span>
+                </div>
+              </nav>
+            </aside>
+          </div>
+        )}
+
+        <div className="flex-1 flex overflow-hidden">
+          <div className="flex-1 overflow-x-auto overflow-y-hidden p-4 lg:p-6">
+            <DndContext sensors={sensors} collisionDetection={closestCorners} onDragEnd={handleDragEnd}>
+              <div className="flex gap-4 h-full items-start" style={{ minHeight: 0 }}>
+                <SortableContext items={currentBoard.lists.map((l) => l.id)} strategy={horizontalListSortingStrategy}>
+                  {filteredLists.map((list) => (
+                    <KanbanList
+                      key={list.id}
+                      list={list}
+                      onAddCard={handleAddCard}
+                      onCardClick={(card) => setSelectedCard(card)}
+                      onRenameList={handleRenameList}
+                      onDeleteList={handleDeleteList}
+                      onUpdateCard={handleUpdateCard}
+                    />
+                  ))}
+                </SortableContext>
+
+                {/* Add list button */}
+                <div className="w-80 flex-shrink-0">
+                  <button
+                    onClick={handleAddList}
+                    className="w-full p-3 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl text-sm text-gray-500 dark:text-gray-400 hover:border-gray-400 dark:hover:border-gray-500 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-all duration-200 flex items-center justify-center gap-2"
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
+                    Add List
+                  </button>
+                </div>
+              </div>
+            </DndContext>
+          </div>
+
+          <div className="hidden lg:block">
+            <RightSidebar activeTab={rightTab} onTabChange={setRightTab} activities={activities} board={currentBoard} onUpdateBoard={async (data) => { const res = await updateBoard(boardId, data); if (res.ok) refreshBoard() }} onAddMember={handleAddBoardMember} onRemoveMember={handleRemoveBoardMember} />
+          </div>
+        </div>
+      </div>
+
+      {showRight && (
+        <div className="fixed inset-0 z-40 lg:hidden">
+          <div className="absolute inset-0 bg-black/50" onClick={() => setShowRight(false)} />
+          <div className="absolute right-0 top-0 bottom-0 w-80 bg-white dark:bg-gray-800 shadow-xl">
+            <RightSidebar activeTab={rightTab} onTabChange={setRightTab} activities={activities} board={currentBoard} onUpdateBoard={async (data) => { const res = await updateBoard(boardId, data); if (res.ok) refreshBoard() }} onAddMember={handleAddBoardMember} onRemoveMember={handleRemoveBoardMember} />
+          </div>
+        </div>
+      )}
+
+      <CardDetailModal
+        card={selectedCard}
+        onClose={() => setSelectedCard(null)}
+        onAddComment={handleAddComment}
+        onUpdateCard={handleUpdateCard}
+        onToggleLabel={handleToggleLabel}
+        onDeleteCard={handleDeleteCard}
+        onAddChecklistItem={handleAddChecklistItem}
+        onToggleChecklistItem={handleToggleChecklistItem}
+        onAddAssignee={handleAddAssignee}
+        onRemoveAssignee={handleRemoveAssignee}
+        boardMembers={currentBoard.members}
+      />
+    </div>
+  )
+}

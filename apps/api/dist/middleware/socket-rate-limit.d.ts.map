@@ -1,0 +1,1 @@
+{"version":3,"file":"socket-rate-limit.d.ts","sourceRoot":"","sources":["../../src/middleware/socket-rate-limit.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,MAAM,EAAE,MAAM,WAAW,CAAC;AASnC,wBAAsB,oBAAoB,CAAC,MAAM,EAAE,MAAM,EAAE,KAAK,EAAE,MAAM,GAAG,OAAO,CAAC,OAAO,CAAC,CA2B1F"}
