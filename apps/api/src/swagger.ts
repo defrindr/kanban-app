@@ -112,9 +112,14 @@ const BOARD_RESPONSE = {
           boardId: { type: 'string' },
           title: { type: 'string' },
           position: { type: 'number' },
+          _count: {
+            type: 'object',
+            properties: {
+              cards: { type: 'integer' },
+            },
+          },
           createdAt: { type: 'string', format: 'date-time' },
           updatedAt: { type: 'string', format: 'date-time' },
-          cards: { type: 'array', items: CARD_RESPONSE },
         },
       },
     },

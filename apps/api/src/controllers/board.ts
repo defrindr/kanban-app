@@ -119,7 +119,7 @@ router.post(
           ],
         },
       },
-      include: BOARD_INCLUDE,
+      include: BOARD_CREATE_INCLUDE,
     });
 
     await cacheDel(`boards:${req.user!.userId}:*`);

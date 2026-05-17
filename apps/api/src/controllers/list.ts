@@ -1,12 +1,49 @@
 import { Router } from 'express';
 import { prisma, io } from '../app.js';
-import { validateBody } from '../middleware/validate.js';
+import { validateBody, validateQuery } from '../middleware/validate.js';
 import { asyncHandler } from '../middleware/error-handler.js';
-import { CreateListSchema, UpdateListSchema } from '../utils/validation.js';
+import { CreateListSchema, UpdateListSchema, PaginationSchema } from '../utils/validation.js';
 import { notifyBoard } from '../utils/notifications.js';
 import { logActivity } from '../utils/activity.js';
 
+const CARD_INCLUDE = {
+  comments: { include: { user: { select: { id: true, name: true, avatar: true } } } },
+  cardLabels: true,
+  cardAssignees: { include: { user: { select: { id: true, email: true, name: true, avatar: true } } } },
+};
+
 const router = Router();
+
+router.get(
+  '/:id/cards',
+  validateQuery(PaginationSchema),
+  asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const { page, limit } = req.query as unknown as { page: number; limit: number };
+    const skip = (page - 1) * limit;
+
+    const list = await prisma.list.findUnique({ where: { id } });
+    if (!list) {
+      return res.status(404).json({
+        ok: false,
+        error: { code: 'NOT_FOUND', message: 'List not found' },
+      });
+    }
+
+    const [cards, total] = await Promise.all([
+      prisma.card.findMany({
+        where: { listId: id },
+        skip,
+        take: limit,
+        include: CARD_INCLUDE,
+        orderBy: { position: 'asc' },
+      }),
+      prisma.card.count({ where: { listId: id } }),
+    ]);
+
+    res.json({ ok: true, data: cards, meta: { page, limit, total } });
+  })
+);
 
 router.post(
   '/',
@@ -16,7 +53,6 @@ router.post(
 
     const list = await prisma.list.create({
       data: { boardId, title, position: position || 1 },
-      include: { cards: true },
     });
 
     await logActivity({
