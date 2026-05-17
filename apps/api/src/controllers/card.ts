@@ -6,7 +6,8 @@ import {
   CreateCardSchema, UpdateCardSchema, MoveCardSchema,
   CreateCardLabelSchema, AddCardAssigneeSchema, CardSearchSchema,
 } from '../utils/validation.js';
-import { notifyBoard } from '../utils/notifications.js';
+import { notifyBoard, notifyUser } from '../utils/notifications.js';
+import { addNotification } from '../utils/notification-store.js';
 import { logActivity } from '../utils/activity.js';
 import { upload } from '../middleware/upload.js';
 import { storage } from '../utils/storage.js';
@@ -103,6 +104,7 @@ router.post(
       action: 'CREATE',
       entityType: 'CARD',
       entityId: card.id,
+      metadata: { entityName: card.title },
     });
 
     notifyBoard(list.boardId, 'card:created', card, req.user);
@@ -292,10 +294,14 @@ router.post(
     notifyBoard(boardId, 'card:assignee:added', { cardId: id, assignee }, req.user);
 
     const [assignedUser, card] = await Promise.all([
-      prisma.user.findUnique({ where: { id: userId }, select: { email: true } }),
+      prisma.user.findUnique({ where: { id: userId }, select: { email: true, name: true } }),
       prisma.card.findUnique({ where: { id }, select: { title: true, list: { select: { board: { select: { name: true } } } } } }),
     ]);
     if (assignedUser && card) {
+      const msg = `${req.user!.email.split('@')[0]} assigned you to "${card.title}"`;
+      const notif = addNotification(userId, { userId, type: 'assignment', message: msg, read: false });
+      notifyUser(userId, 'notification:new', notif);
+
       const opts = assignmentNotificationEmail(req.user!.email, card.title, card.list.board.name, `${process.env.APP_URL || 'http://localhost:4000'}/boards/${boardId}/cards/${id}`);
       sendEmail({ to: assignedUser.email, ...opts });
     }
@@ -323,9 +329,17 @@ router.post(
 
       const [cardInfo, assignees] = await Promise.all([
         prisma.card.findUnique({ where: { id }, select: { title: true, list: { select: { board: { select: { name: true } } } } } }),
-        prisma.cardAssignee.findMany({ where: { cardId: id }, include: { user: { select: { email: true } } } }),
+        prisma.cardAssignee.findMany({ where: { cardId: id }, include: { user: { select: { email: true, id: true } } } }),
       ]);
       if (cardInfo) {
+        const commenter = req.user!.email.split('@')[0];
+        assignees
+          .filter(a => a.userId !== req.user!.userId)
+          .forEach(a => {
+            const msg = `${commenter} commented on "${cardInfo.title}"`;
+            const notif = addNotification(a.userId, { userId: a.userId, type: 'comment', message: msg, read: false });
+            notifyUser(a.userId, 'notification:new', notif);
+          });
         const emails = assignees
           .map(a => a.user.email)
           .filter(e => e !== req.user!.email);

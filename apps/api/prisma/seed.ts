@@ -9,7 +9,7 @@ async function main() {
   const user = await prisma.user.upsert({
     where: { email: 'demo@kanbanpro.com' },
     update: {},
-    create: { email: 'demo@kanbanpro.com', name: 'Demo User', avatar: 'DU', password },
+    create: { email: 'demo@kanbanpro.com', name: 'Demo User', avatar: 'DU', password, role: 'ADMIN' },
   });
 
   const alice = await prisma.user.upsert({
@@ -94,9 +94,23 @@ async function main() {
   });
   await prisma.cardAssignee.create({ data: { cardId: card7.id, userId: user.id } });
 
-  await prisma.activity.create({
-    data: { boardId: board.id, userId: user.id, action: 'CREATE', entityType: 'BOARD', entityId: board.id },
-  });
+  const activities: { boardId: string; userId: string; action: string; entityType: string; entityId: string; metadata?: any }[] = [
+    { boardId: board.id, userId: user.id, action: 'CREATE', entityType: 'BOARD', entityId: board.id },
+    { boardId: board.id, userId: user.id, action: 'CREATE', entityType: 'LIST', entityId: backlog.id, metadata: { entityName: 'Backlog' } },
+    { boardId: board.id, userId: user.id, action: 'CREATE', entityType: 'LIST', entityId: todo.id, metadata: { entityName: 'To Do' } },
+    { boardId: board.id, userId: user.id, action: 'CREATE', entityType: 'LIST', entityId: inProgress.id, metadata: { entityName: 'In Progress' } },
+    { boardId: board.id, userId: user.id, action: 'CREATE', entityType: 'LIST', entityId: review.id, metadata: { entityName: 'Review' } },
+    { boardId: board.id, userId: user.id, action: 'CREATE', entityType: 'LIST', entityId: done.id, metadata: { entityName: 'Done' } },
+    { boardId: board.id, userId: user.id, action: 'CREATE', entityType: 'CARD', entityId: card1.id, metadata: { entityName: 'Implement OAuth2 integration' } },
+    { boardId: board.id, userId: user.id, action: 'CREATE', entityType: 'CARD', entityId: card2.id, metadata: { entityName: 'Database schema optimization' } },
+    { boardId: board.id, userId: user.id, action: 'CREATE', entityType: 'CARD', entityId: card3.id, metadata: { entityName: 'Design system color palette' } },
+    { boardId: board.id, userId: alice.id, action: 'CREATE', entityType: 'COMMENT', entityId: card3.id, metadata: { entityName: card3.id } },
+    { boardId: board.id, userId: user.id, action: 'CREATE', entityType: 'CARD', entityId: card4.id, metadata: { entityName: 'Implement authentication flow' } },
+    { boardId: board.id, userId: user.id, action: 'CREATE', entityType: 'CARD', entityId: card5.id, metadata: { entityName: 'Setup CI/CD pipeline' } },
+    { boardId: board.id, userId: user.id, action: 'CREATE', entityType: 'CARD', entityId: card6.id, metadata: { entityName: 'Mobile responsive fixes' } },
+    { boardId: board.id, userId: user.id, action: 'CREATE', entityType: 'CARD', entityId: card7.id, metadata: { entityName: 'Project setup and dependencies' } },
+  ]
+  await Promise.all(activities.map(a => prisma.activity.create({ data: a })))
 
   console.log(`Seeded board "${board.name}" with ${user.email}`);
 }
