@@ -21,6 +21,8 @@ import {
 import { apiClient } from '@/shared/api/client'
 import { KanbanHeader } from './kanban-header'
 import { KanbanList } from './kanban-list'
+import { BoardCalendarView } from './board-calendar-view'
+import { BoardTimelineView } from './board-timeline-view'
 import { CardDetailModal } from './card-detail-modal'
 import { RightSidebar } from './right-sidebar'
 import { GlobalSearchModal } from './global-search-modal'
@@ -56,6 +58,7 @@ export function KanbanBoard({ boardId }: Props) {
   const [onlineCount, setOnlineCount] = useState(1)
   const [webhooks, setWebhooks] = useState<any[]>([])
   const [showGlobalSearch, setShowGlobalSearch] = useState(false)
+  const [viewMode, setViewMode] = useState<'list' | 'calendar' | 'timeline'>('list')
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }))
 
@@ -409,6 +412,8 @@ export function KanbanBoard({ boardId }: Props) {
         showArchived={showArchived}
         onToggleArchived={() => setShowArchived(!showArchived)}
         onGoBack={() => router.push('/dashboard')}
+        viewMode={viewMode}
+        onViewModeChange={setViewMode}
       />
 
       <div className="flex-1 flex overflow-hidden">
@@ -434,35 +439,51 @@ export function KanbanBoard({ boardId }: Props) {
         )}
 
         <div className="flex-1 flex overflow-hidden">
-          <div className="flex-1 overflow-x-auto overflow-y-hidden p-4 lg:p-6">
-            <DndContext sensors={sensors} collisionDetection={closestCorners} onDragEnd={handleDragEnd}>
-              <div className="flex gap-4 h-full items-start" style={{ minHeight: 0 }}>
-                <SortableContext items={currentBoard.lists.map((l) => l.id)} strategy={horizontalListSortingStrategy}>
-                  {filteredLists.map((list) => (
-                    <KanbanList
-                      key={list.id}
-                      list={list}
-                      onAddCard={handleAddCard}
-                      onCardClick={(card) => updateSelectedCardRef(card)}
-                      onRenameList={handleRenameList}
-                      onDeleteList={handleDeleteList}
-                      onUpdateCard={handleUpdateCard}
-                    />
-                  ))}
-                </SortableContext>
+          <div className="flex-1 overflow-auto p-4 lg:p-6">
+            {viewMode === 'list' ? (
+              <DndContext sensors={sensors} collisionDetection={closestCorners} onDragEnd={handleDragEnd}>
+                <div className="flex gap-4 h-full items-start" style={{ minHeight: 0 }}>
+                  <SortableContext items={currentBoard.lists.map((l) => l.id)} strategy={horizontalListSortingStrategy}>
+                    {filteredLists.map((list) => (
+                      <KanbanList
+                        key={list.id}
+                        list={list}
+                        onAddCard={handleAddCard}
+                        onCardClick={(card) => updateSelectedCardRef(card)}
+                        onRenameList={handleRenameList}
+                        onDeleteList={handleDeleteList}
+                        onUpdateCard={handleUpdateCard}
+                      />
+                    ))}
+                  </SortableContext>
 
-                {/* Add list button */}
-                <div className="w-80 flex-shrink-0">
-                  <button
-                    onClick={handleAddList}
-                    className="w-full p-3 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl text-sm text-gray-500 dark:text-gray-400 hover:border-gray-400 dark:hover:border-gray-500 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-all duration-200 flex items-center justify-center gap-2"
-                  >
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
-                    Add List
-                  </button>
+                  {/* Add list button */}
+                  <div className="w-80 flex-shrink-0">
+                    <button
+                      onClick={handleAddList}
+                      className="w-full p-3 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl text-sm text-gray-500 dark:text-gray-400 hover:border-gray-400 dark:hover:border-gray-500 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-all duration-200 flex items-center justify-center gap-2"
+                    >
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
+                      Add List
+                    </button>
+                  </div>
                 </div>
+              </DndContext>
+            ) : viewMode === 'calendar' ? (
+              <div className="max-w-4xl mx-auto">
+                <BoardCalendarView
+                  cards={filteredLists.flatMap(l => l.cards)}
+                  onCardClick={updateSelectedCardRef}
+                />
               </div>
-            </DndContext>
+            ) : (
+              <div className="max-w-4xl mx-auto">
+                <BoardTimelineView
+                  cards={filteredLists.flatMap(l => l.cards)}
+                  onCardClick={updateSelectedCardRef}
+                />
+              </div>
+            )}
           </div>
 
           <div className="hidden lg:block">
