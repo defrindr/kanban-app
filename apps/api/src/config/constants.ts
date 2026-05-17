@@ -94,3 +94,14 @@ export const SEARCH_TYPES = {
   COMMENTS: 'comments',
 } as const;
 
+// Activity metadata truncation
+export const ACTIVITY_METADATA = {
+  CONTENT_PREVIEW_LENGTH: 100,
+} as const;
+
+// Default values
+export const DEFAULTS = {
+  CARD_POSITION: 1,
+  REFRESH_TOKEN_EXPIRY_DAYS: 30,
+} as const;
+

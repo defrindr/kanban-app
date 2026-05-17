@@ -6,12 +6,10 @@ import { authGuard, signToken } from '../middleware/auth.js';
 import { asyncHandler } from '../middleware/error-handler.js';
 import { loginLimiter, registerLimiter } from '../middleware/rate-limit.js';
 import { AppError } from '../errors.js';
-import { FIELD_LENGTHS } from '../config/constants.js';
+import { FIELD_LENGTHS, DEFAULTS, TIME } from '../config/constants.js';
 import { z } from 'zod';
 
 const router = Router();
-
-const REFRESH_EXPIRY_DAYS = 30;
 
 const RegisterSchema = z.object({
   email: z.string().email(),
@@ -35,7 +33,7 @@ function hashToken(token: string) {
 async function createRefreshToken(userId: string) {
   const raw = randomBytes(40).toString('hex');
   const hashed = hashToken(raw);
-  const expiresAt = new Date(Date.now() + REFRESH_EXPIRY_DAYS * 24 * 60 * 60 * 1000);
+  const expiresAt = new Date(Date.now() + DEFAULTS.REFRESH_TOKEN_EXPIRY_DAYS * TIME.HOURS_PER_DAY * TIME.MINUTES_PER_HOUR * TIME.SECONDS_PER_MINUTE * TIME.MS_PER_SECOND);
 
   await prisma.refreshToken.create({
     data: { token: hashed, userId, expiresAt },

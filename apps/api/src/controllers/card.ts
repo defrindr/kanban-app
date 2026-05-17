@@ -12,6 +12,7 @@ import { logActivity } from '../utils/activity.js';
 import { upload } from '../middleware/upload.js';
 import { storage } from '../utils/storage.js';
 import { sendEmail, assignmentNotificationEmail, commentNotificationEmail } from '../utils/email.js';
+import { FIELD_LENGTHS, DEFAULTS } from '../config/constants.js';
 import crypto from 'crypto';
 import type { Prisma } from '@prisma/client';
 
@@ -93,10 +94,10 @@ router.post(
       });
     }
 
-    const card = await prisma.card.create({
-      data: { listId, title, description, position: position || 1, labels: [], assignees: [] },
-      include: { comments: { include: { user: { select: { id: true, name: true, avatar: true } } } }, cardLabels: true, cardAssignees: { include: { user: { select: { id: true, email: true, name: true, avatar: true } } } } },
-    });
+     const card = await prisma.card.create({
+       data: { listId, title, description, position: position || DEFAULTS.CARD_POSITION, labels: [], assignees: [] },
+       include: { comments: { include: { user: { select: { id: true, name: true, avatar: true } } } }, cardLabels: true, cardAssignees: { include: { user: { select: { id: true, email: true, name: true, avatar: true } } } } },
+     });
 
     await logActivity({
       boardId: list.boardId,
@@ -330,10 +331,10 @@ router.post(
 router.post(
   '/:id/comments',
   asyncHandler(async (req, res) => {
-    const { id } = req.params;
-    const { content } = req.body;
-    if (!content || typeof content !== 'string' || content.length > 2000) {
-      return res.status(422).json({ ok: false, error: { code: 'VALIDATION_FAILED', message: 'Content is required (max 2000 chars)' } });
+     const { id } = req.params;
+     const { content } = req.body;
+     if (!content || typeof content !== 'string' || content.length > FIELD_LENGTHS.COMMENT_MAX) {
+       return res.status(422).json({ ok: false, error: { code: 'VALIDATION_FAILED', message: `Content is required (max ${FIELD_LENGTHS.COMMENT_MAX} chars)` } });
     }
     const comment = await prisma.comment.create({
       data: { cardId: id, userId: req.user!.userId, content },

@@ -8,6 +8,7 @@ import { notifyBoard, notifyUser } from '../utils/notifications.js';
 import { addNotification } from '../utils/notification-store.js';
 import { logActivity } from '../utils/activity.js';
 import { sendEmail, commentNotificationEmail } from '../utils/email.js';
+import { ACTIVITY_METADATA } from '../config/constants.js';
 
 const router = Router();
 
@@ -73,7 +74,7 @@ router.post(
       action: 'CREATE',
       entityType: 'COMMENT',
       entityId: comment.id,
-      metadata: { entityName: card.title, content: content.slice(0, 100) },
+      metadata: { entityName: card.title, content: content.slice(0, ACTIVITY_METADATA.CONTENT_PREVIEW_LENGTH) },
     });
 
     notifyBoard(card.list.boardId, 'comment:created', comment, req.user);
@@ -140,7 +141,7 @@ router.put(
       action: 'UPDATE',
       entityType: 'COMMENT',
       entityId: id,
-      metadata: { content: updated.content.slice(0, 100) },
+      metadata: { content: updated.content.slice(0, ACTIVITY_METADATA.CONTENT_PREVIEW_LENGTH) },
     });
 
     notifyBoard(comment.card.list.boardId, 'comment:updated', updated, req.user);
@@ -176,7 +177,7 @@ router.delete(
       action: 'DELETE',
       entityType: 'COMMENT',
       entityId: id,
-      metadata: { content: comment.content.slice(0, 100) },
+      metadata: { content: comment.content.slice(0, ACTIVITY_METADATA.CONTENT_PREVIEW_LENGTH) },
     });
 
     await prisma.comment.delete({ where: { id } });
