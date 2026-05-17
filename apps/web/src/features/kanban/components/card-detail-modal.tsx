@@ -28,6 +28,8 @@ interface Props {
   card: Card | null
   onClose: () => void
   onAddComment: (cardId: string, content: string) => void
+  onUpdateComment?: (commentId: string, content: string) => void
+  onDeleteComment?: (commentId: string) => void
   onUpdateCard?: (cardId: string, data: Record<string, unknown>) => void
   onToggleLabel?: (cardId: string, label: Label, add: boolean) => void
   onDeleteCard?: (cardId: string) => void
@@ -39,8 +41,10 @@ interface Props {
   boardLists?: List[]
 }
 
-export function CardDetailModal({ card, onClose, onAddComment, onUpdateCard, onToggleLabel, onDeleteCard, onAddAttachment, onAddAssignee, onRemoveAssignee, boardMembers, activities, boardLists }: Props) {
+export function CardDetailModal({ card, onClose, onAddComment, onUpdateComment, onDeleteComment, onUpdateCard, onToggleLabel, onDeleteCard, onAddAttachment, onAddAssignee, onRemoveAssignee, boardMembers, activities, boardLists }: Props) {
   const [newComment, setNewComment] = useState('')
+  const [editingCommentId, setEditingCommentId] = useState<string | null>(null)
+  const [editingCommentText, setEditingCommentText] = useState('')
   const [editingTitle, setEditingTitle] = useState(false)
   const [editTitle, setEditTitle] = useState('')
   const [editingDesc, setEditingDesc] = useState(false)
@@ -308,17 +312,43 @@ export function CardDetailModal({ card, onClose, onAddComment, onUpdateCard, onT
                     <p className="text-sm text-gray-400 dark:text-gray-500 italic">No comments yet</p>
                   )}
                   {card.comments.map((comment) => (
-                    <div key={comment.id} className="flex gap-3">
-                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-xs font-medium flex-shrink-0">
-                        {comment.userAvatar || comment.userName.split(' ').map((n) => n[0]).join('')}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-0.5">
-                          <span className="text-sm font-semibold text-gray-900 dark:text-white">{comment.userName}</span>
-                          <span className="text-xs text-gray-400">{new Date(comment.createdAt).toLocaleDateString()}</span>
+                    <div key={comment.id}>
+                      {editingCommentId === comment.id ? (
+                        <div className="flex gap-3">
+                          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-xs font-medium flex-shrink-0">
+                            {comment.userAvatar || comment.userName.split(' ').map((n) => n[0]).join('')}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <textarea value={editingCommentText} onChange={(e) => setEditingCommentText(e.target.value)}
+                              className="w-full px-3 py-2 text-sm bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white resize-none" rows={2} />
+                            <div className="flex gap-2 mt-2">
+                              <button onClick={() => { onUpdateComment?.(comment.id, editingCommentText); setEditingCommentId(null) }}
+                                className="px-3 py-1 text-xs bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors">Save</button>
+                              <button onClick={() => setEditingCommentId(null)}
+                                className="px-3 py-1 text-xs bg-gray-300 dark:bg-gray-600 hover:bg-gray-400 dark:hover:bg-gray-500 text-gray-800 dark:text-white rounded transition-colors">Cancel</button>
+                            </div>
+                          </div>
                         </div>
-                        <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">{comment.content}</p>
-                      </div>
+                      ) : (
+                        <div className="flex gap-3 group">
+                          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-xs font-medium flex-shrink-0">
+                            {comment.userAvatar || comment.userName.split(' ').map((n) => n[0]).join('')}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-0.5">
+                              <span className="text-sm font-semibold text-gray-900 dark:text-white">{comment.userName}</span>
+                              <span className="text-xs text-gray-400">{new Date(comment.createdAt).toLocaleDateString()}</span>
+                              <div className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
+                                <button onClick={() => { setEditingCommentId(comment.id); setEditingCommentText(comment.content) }}
+                                  className="text-xs px-2 py-0.5 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded">Edit</button>
+                                <button onClick={() => onDeleteComment?.(comment.id)}
+                                  className="text-xs px-2 py-0.5 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded">Delete</button>
+                              </div>
+                            </div>
+                            <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">{comment.content}</p>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>

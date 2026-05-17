@@ -42,6 +42,7 @@ function transformCard(c: any): Card {
     })),
     checklist: c.checklist || [],
     attachments: c.attachments || [],
+    startDate: c.startDate || undefined,
     dueDate: c.dueDate || undefined,
     coverColor: c.coverColor || undefined,
     archived: c.archived || false,
@@ -218,7 +219,7 @@ export async function createCard(listId: string, title: string, description?: st
   return { ok: true, data: transformCard(res.data) }
 }
 
-export async function updateCard(cardId: string, data: { title?: string; description?: string; dueDate?: string | null; coverColor?: string | null; archived?: boolean }): Promise<{ ok: true; data: Card } | { ok: false; error: { code: string; message: string } }> {
+export async function updateCard(cardId: string, data: { title?: string; description?: string; startDate?: string | null; dueDate?: string | null; coverColor?: string | null; archived?: boolean; checklist?: any; attachments?: any }): Promise<{ ok: true; data: Card } | { ok: false; error: { code: string; message: string } }> {
   const body: Record<string, unknown> = { ...data }
   if (data.coverColor === '' || data.coverColor === undefined) body.coverColor = null
   const res = await apiClient<any>(`/api/cards/${cardId}`, {

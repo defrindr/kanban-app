@@ -225,6 +225,17 @@ export function KanbanBoard({ boardId }: Props) {
     if (res.ok) refreshBoard()
   }
 
+  async function handleUpdateComment(commentId: string, content: string) {
+    const { updateComment } = await import('../api/mock-api')
+    const res = await updateComment(commentId, content)
+    if (res.ok) refreshBoard()
+  }
+
+  async function handleDeleteComment(commentId: string) {
+    const { deleteComment } = await import('../api/mock-api')
+    await deleteComment(commentId)
+    refreshBoard()
+  }
   async function handleAddAssignee(cardId: string, member: BoardMember) {
     const res = await apiAddAssignee(cardId, member)
     if (res.ok) refreshBoard()
@@ -393,6 +404,8 @@ export function KanbanBoard({ boardId }: Props) {
         card={selectedCard}
         onClose={() => updateSelectedCardRef(null)}
         onAddComment={handleAddComment}
+        onUpdateComment={handleUpdateComment}
+        onDeleteComment={handleDeleteComment}
         onUpdateCard={handleUpdateCard}
         onToggleLabel={handleToggleLabel}
         onDeleteCard={handleDeleteCard}
