@@ -358,3 +358,158 @@ export async function fetchNotifications(): Promise<{ ok: true; data: Notificati
 export async function markNotificationRead(notificationId: string): Promise<void> {
   await apiClient(`/api/notifications/${notificationId}/read`, { method: 'PUT' })
 }
+
+export async function markAllNotificationsAsRead(): Promise<{ ok: true }> {
+  const res = await apiClient('/api/notifications/read-all', { method: 'PUT' })
+  if (!res.ok) return { ok: true }
+  return { ok: true }
+}
+
+// Comment functions
+export async function updateComment(commentId: string, content: string): Promise<{ ok: true; data: Comment } | { ok: false; error: { code: string; message: string } }> {
+  const res = await apiClient<any>(`/api/comments/${commentId}`, {
+    method: 'PUT',
+    body: JSON.stringify({ content }),
+  })
+  if (!res.ok) return { ok: false, error: res.error }
+  const data = res.data
+  return {
+    ok: true,
+    data: {
+      id: data.id,
+      cardId: data.cardId,
+      userId: data.user?.id || data.userId,
+      userName: data.user?.name || '',
+      userAvatar: data.user?.avatar || '',
+      content: data.content,
+      createdAt: data.createdAt,
+    },
+  }
+}
+
+export async function deleteComment(commentId: string): Promise<{ ok: true } | { ok: false; error: { code: string; message: string } }> {
+  return apiClient(`/api/comments/${commentId}`, { method: 'DELETE' })
+}
+
+export async function getCommentsByCard(cardId: string, page: number = 1, limit: number = 50): Promise<{ ok: true; data: Comment[] }> {
+  const res = await apiClient<any[]>(`/api/comments/card/${cardId}?page=${page}&limit=${limit}`)
+  if (!res.ok) return { ok: true, data: [] }
+  return {
+    ok: true,
+    data: (res.data || []).map((cm: any) => ({
+      id: cm.id,
+      cardId: cm.cardId,
+      userId: cm.user?.id || cm.userId,
+      userName: cm.user?.name || '',
+      userAvatar: cm.user?.avatar || getInitials(cm.user?.name || ''),
+      content: cm.content,
+      createdAt: cm.createdAt,
+    })),
+  }
+}
+
+// Attachment functions
+export async function deleteAttachment(cardId: string, attachmentId: string): Promise<{ ok: true } | { ok: false; error: { code: string; message: string } }> {
+  return apiClient(`/api/cards/${cardId}/attachments/${attachmentId}`, { method: 'DELETE' })
+}
+
+// Board member functions
+export async function getBoardMembers(boardId: string): Promise<{ ok: true; data: BoardMember[] }> {
+  const res = await apiClient<any[]>(`/api/boards/${boardId}/members`)
+  if (!res.ok) return { ok: true, data: [] }
+  return {
+    ok: true,
+    data: (res.data || []).map((m: any) => {
+      const u = m.user || {}
+      return { id: u.id, name: u.name, email: u.email || '', avatar: u.avatar || getInitials(u.name) }
+    }),
+  }
+}
+
+export async function updateMemberRole(boardId: string, memberId: string, role: 'MEMBER' | 'ADMIN'): Promise<{ ok: true; data: BoardMember } | { ok: false; error: { code: string; message: string } }> {
+  const res = await apiClient<any>(`/api/boards/${boardId}/members/${memberId}`, {
+    method: 'PUT',
+    body: JSON.stringify({ role }),
+  })
+  if (!res.ok) return { ok: false, error: res.error }
+  const u = res.data.user || {}
+  return {
+    ok: true,
+    data: { id: u.id, name: u.name, email: u.email || '', avatar: u.avatar || getInitials(u.name) },
+  }
+}
+
+// Advanced search functions
+export async function searchCards(filters: {
+  boardId?: string
+  listId?: string
+  labels?: string[]
+  assigneeId?: string
+  archived?: boolean
+  dueBefore?: string
+  dueAfter?: string
+  page?: number
+  limit?: number
+}): Promise<{ ok: true; data: Card[] }> {
+  const params = new URLSearchParams()
+  if (filters.boardId) params.append('boardId', filters.boardId)
+  if (filters.listId) params.append('listId', filters.listId)
+  if (filters.labels?.length) params.append('labels', filters.labels.join(','))
+  if (filters.assigneeId) params.append('assigneeId', filters.assigneeId)
+  if (filters.archived !== undefined) params.append('archived', String(filters.archived))
+  if (filters.dueBefore) params.append('dueBefore', filters.dueBefore)
+  if (filters.dueAfter) params.append('dueAfter', filters.dueAfter)
+  params.append('page', String(filters.page || 1))
+  params.append('limit', String(filters.limit || 100))
+
+  const res = await apiClient<any[]>(`/api/cards/search?${params}`)
+  if (!res.ok) return { ok: true, data: [] }
+  return { ok: true, data: res.data.map(transformCard) }
+}
+
+export async function getListCards(listId: string, page: number = 1, limit: number = 50): Promise<{ ok: true; data: Card[] }> {
+  const res = await apiClient<any[]>(`/api/lists/${listId}/cards?page=${page}&limit=${limit}`)
+  if (!res.ok) return { ok: true, data: [] }
+  return { ok: true, data: res.data.map(transformCard) }
+}
+
+export async function searchGlobally(query: string, type?: 'board' | 'list' | 'card' | 'comment', page: number = 1, limit: number = 50): Promise<{ ok: true; data: any[] }> {
+  const params = new URLSearchParams()
+  params.append('q', query)
+  if (type) params.append('type', type)
+  params.append('page', String(page))
+  params.append('limit', String(limit))
+
+  const res = await apiClient<any[]>(`/api/boards/search?${params}`)
+  if (!res.ok) return { ok: true, data: [] }
+  return { ok: true, data: res.data }
+}
+
+// Webhook functions
+export async function getWebhooks(boardId: string): Promise<{ ok: true; data: any[] }> {
+  const res = await apiClient<any[]>(`/api/boards/${boardId}/webhooks`)
+  if (!res.ok) return { ok: true, data: [] }
+  return { ok: true, data: res.data }
+}
+
+export async function createWebhook(boardId: string, url: string, events: string[]): Promise<{ ok: true; data: any } | { ok: false; error: { code: string; message: string } }> {
+  const res = await apiClient<any>(`/api/boards/${boardId}/webhooks`, {
+    method: 'POST',
+    body: JSON.stringify({ url, events }),
+  })
+  if (!res.ok) return { ok: false, error: res.error }
+  return { ok: true, data: res.data }
+}
+
+export async function updateWebhook(boardId: string, webhookId: string, data: { url?: string; events?: string[]; active?: boolean }): Promise<{ ok: true; data: any } | { ok: false; error: { code: string; message: string } }> {
+  const res = await apiClient<any>(`/api/boards/${boardId}/webhooks/${webhookId}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  })
+  if (!res.ok) return { ok: false, error: res.error }
+  return { ok: true, data: res.data }
+}
+
+export async function deleteWebhook(boardId: string, webhookId: string): Promise<{ ok: true } | { ok: false; error: { code: string; message: string } }> {
+  return apiClient(`/api/boards/${boardId}/webhooks/${webhookId}`, { method: 'DELETE' })
+}
