@@ -396,6 +396,7 @@ router.post(
       metadata: { attachmentName: req.file.originalname } as Prisma.InputJsonValue,
     });
 
+    notifyBoard(boardId, 'card:attachment:added', { cardId: id, attachment });
     res.status(201).json({ ok: true, data: attachment });
   })
 );
@@ -451,7 +452,7 @@ router.delete(
       metadata: { attachmentName: attachment.name } as Prisma.InputJsonValue,
     });
 
-    notifyBoard(boardId, 'card:deleted', { id });
+    notifyBoard(boardId, 'card:attachment:removed', { cardId: id, attachmentId });
     res.json({ ok: true, data: { success: true } });
   })
 );

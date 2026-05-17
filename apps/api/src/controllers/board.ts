@@ -5,22 +5,30 @@ import { asyncHandler } from '../middleware/error-handler.js';
 import { CreateBoardSchema, UpdateBoardSchema, PaginationSchema, BoardSearchSchema } from '../utils/validation.js';
 import { cacheGet, cacheSet, cacheDel } from '../utils/cache.js';
 import { notifyBoard } from '../utils/notifications.js';
+import { logActivity } from '../utils/activity.js';
 
 const router = Router();
 
-const CARD_INCLUDE = {
-  comments: { include: { user: { select: { id: true, name: true, avatar: true } } } },
-  cardLabels: true,
-  cardAssignees: { include: { user: { select: { id: true, email: true, name: true, avatar: true } } } },
+const MEMBER_SELECT = { id: true, email: true, name: true, avatar: true };
+const MEMBER_INCLUDE = { include: { user: { select: MEMBER_SELECT } } };
+
+const BOARD_LIST_INCLUDE = { members: MEMBER_INCLUDE };
+
+const BOARD_DETAIL_INCLUDE = {
+  members: MEMBER_INCLUDE,
+  lists: {
+    include: {
+      _count: { select: { cards: true } },
+    },
+    orderBy: { position: 'asc' as const },
+  },
 };
 
-const LIST_INCLUDE = {
-  cards: { include: CARD_INCLUDE, orderBy: { position: 'asc' as const } },
-};
-
-const BOARD_INCLUDE = {
-  members: { include: { user: { select: { id: true, email: true, name: true, avatar: true } } } },
-  lists: { include: LIST_INCLUDE, orderBy: { position: 'asc' as const } },
+const BOARD_CREATE_INCLUDE = {
+  members: MEMBER_INCLUDE,
+  lists: {
+    orderBy: { position: 'asc' as const },
+  },
 };
 
 router.get(
@@ -47,7 +55,7 @@ router.get(
         where,
         skip,
         take: limit,
-        include: BOARD_INCLUDE,
+        include: BOARD_LIST_INCLUDE,
         orderBy: { createdAt: 'desc' },
       }),
       prisma.board.count({ where }),
@@ -73,7 +81,7 @@ router.get(
 
     const board = await prisma.board.findUnique({
       where: { id },
-      include: BOARD_INCLUDE,
+      include: BOARD_DETAIL_INCLUDE,
     });
 
     if (!board) {
@@ -139,7 +147,7 @@ router.put(
     const board = await prisma.board.update({
       where: { id },
       data: { name, description },
-      include: BOARD_INCLUDE,
+      include: BOARD_DETAIL_INCLUDE,
     });
 
     await cacheDel(`board:${id}`);
