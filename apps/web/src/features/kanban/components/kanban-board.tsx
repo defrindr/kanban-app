@@ -13,6 +13,7 @@ import {
   addCardAssignee as apiAddAssignee, removeCardAssignee as apiRemoveAssignee,
   addBoardMember as apiAddBoardMember, removeBoardMember as apiRemoveBoardMember,
   uploadAttachment, deleteBoard as apiDeleteBoard,
+  fetchNotifications, markNotificationRead as apiMarkRead,
 } from '../api/mock-api'
 import { apiClient } from '@/shared/api/client'
 import { KanbanHeader } from './kanban-header'
@@ -21,7 +22,7 @@ import { CardDetailModal } from './card-detail-modal'
 import { RightSidebar } from './right-sidebar'
 import { useToast } from '@/shared/hooks/use-toast'
 import { connectSocket, joinBoard, leaveBoard, disconnectSocket, getSocket } from '@/shared/api/socket'
-import type { Board, Card, Label, BoardMember } from '../types/kanban'
+import type { Board, Card, Label, BoardMember, Notification } from '../types/kanban'
 
 interface Props {
   boardId: string
@@ -73,14 +74,18 @@ export function KanbanBoard({ boardId }: Props) {
   useEffect(() => {
     async function load() {
       setLoading(true)
-      const res = await fetchBoard(boardId)
-      if (res.ok) {
-        setCurrentBoard(res.data)
+      const [boardRes, notifRes] = await Promise.all([
+        fetchBoard(boardId),
+        fetchNotifications(),
+      ])
+      if (boardRes.ok) {
+        setCurrentBoard(boardRes.data)
         const [actRes] = await Promise.all([
           fetchActivities(boardId),
         ])
         if (actRes.ok) setActivities(actRes.data)
       }
+      if (notifRes.ok) setNotifications(notifRes.data)
       setLoading(false)
     }
     load()
@@ -100,13 +105,16 @@ export function KanbanBoard({ boardId }: Props) {
       sock.on('user:presence', (data: { boardId: string; users: unknown[] }) => {
         if (data.boardId === boardId) setOnlineCount(data.users.length)
       })
+      sock.on('notification:new', (notif: Notification) => {
+        setNotifications([notif, ...useBoardStore.getState().notifications])
+      })
     }
 
     return () => {
       leaveBoard(boardId)
       disconnectSocket()
     }
-  }, [boardId, setCurrentBoard, setActivities])
+  }, [boardId, setCurrentBoard, setActivities, setNotifications])
 
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event
@@ -221,6 +229,11 @@ export function KanbanBoard({ boardId }: Props) {
     if (!res.ok) { refreshBoard(); toast.error(res.error?.message || 'Failed to update board') }
   }
 
+  async function handleMarkRead(notifId: string) {
+    markNotificationRead(notifId)
+    apiMarkRead(notifId)
+  }
+
   async function handleDeleteBoard() {
     if (!currentBoard || !confirm('Are you sure you want to delete this board? This action cannot be undone.')) return
     const res = await apiDeleteBoard(currentBoard.id)
@@ -282,7 +295,7 @@ export function KanbanBoard({ boardId }: Props) {
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
         onOpenSettings={() => { setRightTab('settings'); setShowRight(true) }}
-        onMarkRead={markNotificationRead}
+        onMarkRead={handleMarkRead}
         showArchived={showArchived}
         onToggleArchived={() => setShowArchived(!showArchived)}
       />
@@ -367,6 +380,8 @@ export function KanbanBoard({ boardId }: Props) {
         onAddAssignee={handleAddAssignee}
         onRemoveAssignee={handleRemoveAssignee}
         boardMembers={currentBoard.members}
+        activities={activities}
+        boardLists={currentBoard.lists}
       />
     </div>
   )

@@ -175,4 +175,42 @@ describe('CardDetailModal', () => {
     fireEvent.click(coverBtn)
     expect(screen.getByText('Cover:')).toBeInTheDocument()
   })
+
+  describe('history', () => {
+    const lists = [
+      { id: 'l1', boardId: 'b1', title: 'Backlog', position: 1, cards: [] },
+      { id: 'l2', boardId: 'b1', title: 'In Progress', position: 2, cards: [] },
+    ]
+
+    it('shows no history state', () => {
+      render(<CardDetailModal {...baseProps} activities={[]} boardLists={lists} />)
+      expect(screen.getByText('No history yet')).toBeInTheDocument()
+    })
+
+    it('shows card creation in history', () => {
+      const activities = [
+        { id: 'a1', boardId: 'b1', userId: 'u1', userName: 'John', action: 'created', entityType: 'card', entityId: 'c1', createdAt: '2026-01-01T00:00:00Z' },
+      ]
+      render(<CardDetailModal {...baseProps} activities={activities} boardLists={lists} />)
+      expect(screen.getByText('created this card')).toBeInTheDocument()
+    })
+
+    it('shows card movement with list names', () => {
+      const activities = [
+        { id: 'a1', boardId: 'b1', userId: 'u1', userName: 'John', action: 'moved', entityType: 'card', entityId: 'c1', fromListId: 'l1', toListId: 'l2', createdAt: '2026-01-01T00:00:00Z' },
+      ]
+      render(<CardDetailModal {...baseProps} activities={activities} boardLists={lists} />)
+      expect(screen.getByText(/moved from/)).toBeInTheDocument()
+      expect(screen.getByText(/Backlog/)).toBeInTheDocument()
+      expect(screen.getByText(/In Progress/)).toBeInTheDocument()
+    })
+
+    it('shows card update in history', () => {
+      const activities = [
+        { id: 'a1', boardId: 'b1', userId: 'u1', userName: 'John', action: 'updated', entityType: 'card', entityId: 'c1', createdAt: '2026-01-01T00:00:00Z' },
+      ]
+      render(<CardDetailModal {...baseProps} activities={activities} boardLists={lists} />)
+      expect(screen.getByText('updated the card')).toBeInTheDocument()
+    })
+  })
 })

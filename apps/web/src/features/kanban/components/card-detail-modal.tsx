@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef } from 'react'
-import type { Card, Label, BoardMember } from '../types/kanban'
+import type { Card, Label, BoardMember, Activity, List } from '../types/kanban'
 import { LABEL_OPTIONS } from '../types/kanban'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'
@@ -35,9 +35,11 @@ interface Props {
   onAddAssignee?: (cardId: string, member: BoardMember) => void
   onRemoveAssignee?: (cardId: string, memberId: string) => void
   boardMembers?: BoardMember[]
+  activities?: Activity[]
+  boardLists?: List[]
 }
 
-export function CardDetailModal({ card, onClose, onAddComment, onUpdateCard, onToggleLabel, onDeleteCard, onAddAttachment, onAddAssignee, onRemoveAssignee, boardMembers }: Props) {
+export function CardDetailModal({ card, onClose, onAddComment, onUpdateCard, onToggleLabel, onDeleteCard, onAddAttachment, onAddAssignee, onRemoveAssignee, boardMembers, activities, boardLists }: Props) {
   const [newComment, setNewComment] = useState('')
   const [editingTitle, setEditingTitle] = useState(false)
   const [editTitle, setEditTitle] = useState('')
@@ -92,6 +94,17 @@ export function CardDetailModal({ card, onClose, onAddComment, onUpdateCard, onT
   const isOverdue = card.dueDate && new Date(card.dueDate) < new Date()
   const checklistTotal = card.checklist?.length || 0
   const checklistDone = card.checklist?.filter(i => i.done).length || 0
+
+  const listName = (id: string) => boardLists?.find(l => l.id === id)?.title || id
+  const cardActivities = (activities || []).filter(a => a.entityType === 'card' && a.entityId === card.id)
+  function formatActivity(a: Activity): string {
+    if (a.action === 'created') return 'created this card'
+    if (a.action === 'moved') return `moved from "${listName(a.fromListId || '')}" to "${listName(a.toListId || '')}"`
+    if (a.action === 'updated') return 'updated the card'
+    if (a.action === 'deleted') return 'deleted this card'
+    if (a.action === 'commented') return 'commented'
+    return a.action
+  }
 
   return (
     <div className="fixed inset-0 bg-black/60 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4" onClick={onClose}>
@@ -302,6 +315,31 @@ export function CardDetailModal({ card, onClose, onAddComment, onUpdateCard, onT
                       className="mt-2 px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed">Comment</button>
                   </div>
                 </div>
+              </div>
+
+              {/* History */}
+              <div>
+                <h4 className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-3">History</h4>
+                {cardActivities.length === 0 ? (
+                  <p className="text-sm text-gray-400 dark:text-gray-500 italic">No history yet</p>
+                ) : (
+                  <div className="space-y-3">
+                    {cardActivities.map((a) => (
+                      <div key={a.id} className="flex gap-3">
+                        <div className="w-7 h-7 rounded-full bg-gradient-to-br from-gray-300 to-gray-400 flex items-center justify-center text-white text-[10px] font-medium flex-shrink-0">
+                          {a.userAvatar || a.userName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm text-gray-700 dark:text-gray-300">
+                            <span className="font-medium">{a.userName}</span>
+                            <span className="text-gray-500 dark:text-gray-400"> {formatActivity(a)}</span>
+                          </p>
+                          <p className="text-xs text-gray-400 mt-0.5">{new Date(a.createdAt).toLocaleString()}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
 
