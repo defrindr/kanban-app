@@ -166,13 +166,12 @@ export default function MyTasksPage() {
                       const listName = c.listName || 'Unknown'
                       const statusKey = normalizeListName(listName)
                       const availableLists = boardLists.get(bid) || []
+                      const cardLink = `/board/${bid}?cardId=${c.id}`
                       return (
-                        <div key={c.id} className="bg-white dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700/50 rounded-xl p-4 hover:border-blue-500/30 hover:shadow-md transition-all duration-200">
+                        <Link key={c.id} href={cardLink} className="block group bg-white dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700/50 rounded-xl p-4 hover:border-blue-500/30 hover:shadow-md transition-all duration-200">
                           <div className="flex items-start justify-between gap-4">
                             <div className="flex-1 min-w-0">
-                              <Link href={`/board/${bid}`} className="block hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
-                                <h3 className="font-semibold text-gray-900 dark:text-white mb-1">{c.title}</h3>
-                              </Link>
+                              <h3 className="font-semibold text-gray-900 dark:text-white mb-1 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">{c.title}</h3>
                               {c.description && <p className="text-sm text-gray-500 dark:text-gray-400 line-clamp-1">{c.description}</p>}
                               {c.labels.length > 0 && (
                                 <div className="flex flex-wrap gap-1.5 mt-2">
@@ -182,20 +181,27 @@ export default function MyTasksPage() {
                                 </div>
                               )}
                             </div>
-                            <div className="flex items-center gap-3 flex-shrink-0">
-                              <div className="relative">
+                            <div className="flex items-center gap-2 flex-shrink-0">
+                              <div className="relative" onClick={(e) => e.preventDefault()}>
                                 <button
-                                  onClick={() => setDropdownOpen(dropdownOpen === c.id ? null : c.id)}
-                                  className={`text-xs font-medium px-2 py-1 rounded transition-colors ${statusColors[statusKey] || statusColors.todo}`}
+                                  onClick={(e) => {
+                                    e.preventDefault()
+                                    setDropdownOpen(dropdownOpen === c.id ? null : c.id)
+                                  }}
+                                  className={`text-xs font-medium px-3 py-1.5 rounded inline-flex items-center gap-1.5 transition-all hover:shadow-sm cursor-pointer ${statusColors[statusKey] || statusColors.todo} hover:opacity-90`}
                                 >
                                   {listName}
+                                  <svg className={`w-3.5 h-3.5 transition-transform ${dropdownOpen === c.id ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 14l-7 7m0 0l-7-7m7 7V3" /></svg>
                                 </button>
                                 {dropdownOpen === c.id && (
-                                  <div className="absolute top-full right-0 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-10 min-w-max">
+                                  <div className="absolute top-full right-0 mt-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-10 min-w-max">
                                     {availableLists.map((list) => (
                                       <button
                                         key={list.id}
-                                        onClick={() => handleMoveCard(c.id, c.listId, list.id)}
+                                        onClick={(e) => {
+                                          e.preventDefault()
+                                          handleMoveCard(c.id, c.listId, list.id)
+                                        }}
                                         className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 first:rounded-t-lg last:rounded-b-lg transition-colors"
                                       >
                                         {list.title}
@@ -204,7 +210,7 @@ export default function MyTasksPage() {
                                   </div>
                                 )}
                               </div>
-                              <div className="flex items-center gap-3 text-xs text-gray-400">
+                              <div className="flex items-center gap-2 text-xs text-gray-400">
                                 {c.dueDate && (
                                   <span className={`flex items-center gap-1 ${new Date(c.dueDate) < new Date() ? 'text-red-500' : ''}`}>
                                     <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
@@ -218,7 +224,7 @@ export default function MyTasksPage() {
                               </div>
                             </div>
                           </div>
-                        </div>
+                        </Link>
                       )
                     })}
                   </div>

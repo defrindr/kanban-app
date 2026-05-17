@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback, useRef } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { DndContext, DragEndEvent, closestCorners, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { SortableContext, horizontalListSortingStrategy } from '@dnd-kit/sortable'
 import { useBoardStore } from '../stores/board-store'
@@ -31,6 +31,7 @@ interface Props {
 
 export function KanbanBoard({ boardId }: Props) {
   const { darkMode, setDarkMode } = useDarkMode()
+  const searchParams = useSearchParams()
   const {
     currentBoard, activities, notifications,
     setCurrentBoard, setActivities, setNotifications,
@@ -119,6 +120,20 @@ export function KanbanBoard({ boardId }: Props) {
       disconnectSocket()
     }
   }, [boardId, setCurrentBoard, setActivities, setNotifications])
+
+  // Auto-open card from URL param
+  useEffect(() => {
+    const cardId = searchParams.get('cardId')
+    if (cardId && currentBoard) {
+      for (const list of currentBoard.lists) {
+        const card = list.cards.find(c => c.id === cardId)
+        if (card) {
+          updateSelectedCardRef(card)
+          return
+        }
+      }
+    }
+  }, [searchParams, currentBoard])
 
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event
