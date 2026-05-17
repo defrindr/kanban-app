@@ -54,5 +54,5 @@ export const ADMIN_STAT_CARDS: AdminStatConfig[] = [
 
 export const ADMIN_PAGINATION = {
   DEFAULT_LIMIT: 20,
-  DEFAULT_PAGE: 1,
+  DEFAULT_PAGE: 1 as number,  // Cast to number to allow flexible type inference
 } as const

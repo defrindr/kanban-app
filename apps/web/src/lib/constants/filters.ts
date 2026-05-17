@@ -11,7 +11,12 @@ export const DUE_DATE_FILTERS = {
 
 export type DueDateFilter = typeof DUE_DATE_FILTERS[keyof typeof DUE_DATE_FILTERS]
 
-export const DUE_DATE_FILTER_OPTIONS = Object.values(DUE_DATE_FILTERS) as const
+export const DUE_DATE_FILTER_OPTIONS: DueDateFilter[] = [
+  DUE_DATE_FILTERS.OVERDUE,
+  DUE_DATE_FILTERS.TODAY,
+  DUE_DATE_FILTERS.WEEK,
+  DUE_DATE_FILTERS.MONTH,
+]
 
 export const OVERDUE_INDICATOR_CONFIG = {
   bg: 'bg-red-50 dark:bg-red-900/20',
