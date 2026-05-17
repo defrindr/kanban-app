@@ -117,6 +117,10 @@ export default function MyTasksPage() {
   const [boards, setBoards] = useState<Board[]>([])
   const [loading, setLoading] = useState(true)
   const [dropdownOpen, setDropdownOpen] = useState<string | null>(null)
+  const [filterStatus, setFilterStatus] = useState<string | null>(null)
+  const [filterBoard, setFilterBoard] = useState<string | null>(null)
+  const [filterLabel, setFilterLabel] = useState<string | null>(null)
+  const [sortBy, setSortBy] = useState<'due-date' | 'title' | 'created'>('due-date')
 
   useEffect(() => {
     if (authLoading && !user) { useAuthStore.getState().checkAuth(); return }
@@ -145,9 +149,38 @@ export default function MyTasksPage() {
   }
 
   const getCardBoardId = (c: Card): string => c.boardId || listToBoard.get(c.listId) || 'unknown'
-  
+
+  // Filter and sort logic
+  const filteredCards = cards.filter(c => {
+    if (filterStatus && normalizeListName(c.listName || '') !== filterStatus) return false
+    if (filterBoard && getCardBoardId(c) !== filterBoard) return false
+    if (filterLabel && !c.labels.some(l => l.id === filterLabel)) return false
+    return true
+  })
+
+  const sortedCards = [...filteredCards].sort((a, b) => {
+    switch (sortBy) {
+      case 'due-date':
+        if (!a.dueDate && !b.dueDate) return a.title.localeCompare(b.title)
+        if (!a.dueDate) return 1
+        if (!b.dueDate) return -1
+        return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime()
+      case 'title':
+        return a.title.localeCompare(b.title)
+      case 'created':
+        return (b.createdAt || '').localeCompare(a.createdAt || '')
+      default:
+        return 0
+    }
+  })
+
+  // Get unique labels from filtered cards
+  const allLabels = Array.from(new Set(sortedCards.flatMap(c => c.labels.map(l => l.id)))).map(
+    id => sortedCards.flatMap(c => c.labels).find(l => l.id === id)
+  ).filter(Boolean) as typeof cards[0]['labels']
+
   const grouped = new Map<string, Card[]>()
-  for (const c of cards) {
+  for (const c of sortedCards) {
     const bid = getCardBoardId(c)
     if (!grouped.has(bid)) grouped.set(bid, [])
     grouped.get(bid)!.push(c)
@@ -176,6 +209,8 @@ export default function MyTasksPage() {
   const completedTasks = cards.filter(c => normalizeListName(c.listName || '') === 'done').length
   const inProgressTasks = cards.filter(c => normalizeListName(c.listName || '') === 'in progress').length
   const overdueTasks = cards.filter(c => c.dueDate && new Date(c.dueDate) < new Date()).length
+
+  const hasActiveFilters = filterStatus || filterBoard || filterLabel
 
   if (authLoading || !user) {
     return (
@@ -220,162 +255,283 @@ export default function MyTasksPage() {
             <p className="text-gray-500 dark:text-gray-400">No tasks assigned yet</p>
           </div>
         ) : (
-          <div className="space-y-8">
-            {/* Overview Stats */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
-                <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Total Tasks</div>
-                <div className="text-3xl font-bold text-gray-900 dark:text-white">{totalTasks}</div>
-              </div>
-              <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
-                <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">In Progress</div>
-                <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">{inProgressTasks}</div>
-              </div>
-              <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
-                <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Completed</div>
-                <div className="text-3xl font-bold text-green-600 dark:text-green-400">{completedTasks}</div>
-              </div>
-              <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
-                <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Overdue</div>
-                <div className={`text-3xl font-bold ${overdueTasks > 0 ? 'text-red-600 dark:text-red-400' : 'text-gray-600 dark:text-gray-400'}`}>{overdueTasks}</div>
-              </div>
-            </div>
-
-            {/* Overall Progress */}
-            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Overall Progress</h2>
-              <ProgressChart completed={completedTasks} total={totalTasks} />
-            </div>
-
-            {/* Tasks by Board */}
-            <div className="space-y-6">
-              {Array.from(grouped.entries()).sort().map(([bid, bCards]) => {
-                const counts = getStatusCounts(bCards)
-                const boardCompleted = counts.done
-                const boardTotal = counts.todo + counts.inProgress + counts.done
+          <div className="space-y-6">
+            {/* Filter Bar */}
+            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+              <div className="flex flex-col gap-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Filters & Sort</h3>
+                  {hasActiveFilters && (
+                    <button
+                      onClick={() => {
+                        setFilterStatus(null)
+                        setFilterBoard(null)
+                        setFilterLabel(null)
+                      }}
+                      className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium"
+                    >
+                      Clear filters
+                    </button>
+                  )}
+                </div>
                 
-                return (
-                  <div key={bid} className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
-                    {/* Board Header */}
-                    <div className="border-b border-gray-200 dark:border-gray-700 p-6">
-                      <div className="flex items-start justify-between mb-4">
-                        <Link href={`/board/${bid}`} className="inline-flex items-center gap-2 text-lg font-semibold text-gray-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
-                          {boardNames.get(bid) || 'Unknown Board'}
-                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
-                        </Link>
-                      </div>
-                      
-                      {/* Board Stats */}
-                      <div className="grid grid-cols-3 gap-4 mb-4">
-                        <div>
-                          <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">To Do</div>
-                          <div className="text-2xl font-bold text-gray-900 dark:text-white">{counts.todo}</div>
-                        </div>
-                        <div>
-                          <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">In Progress</div>
-                          <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{counts.inProgress}</div>
-                        </div>
-                        <div>
-                          <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Done</div>
-                          <div className="text-2xl font-bold text-green-600 dark:text-green-400">{counts.done}</div>
-                        </div>
-                      </div>
-                      
-                      {/* Board Progress */}
-                      <ProgressChart completed={boardCompleted} total={boardTotal} />
-                    </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                  {/* Status Filter */}
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">Status</label>
+                    <select
+                      value={filterStatus || ''}
+                      onChange={(e) => setFilterStatus(e.target.value || null)}
+                      className="w-full px-3 py-1.5 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="">All Status</option>
+                      <option value="to do">To Do</option>
+                      <option value="in progress">In Progress</option>
+                      <option value="done">Done</option>
+                    </select>
+                  </div>
 
-                    {/* Tasks List */}
-                    <div className="divide-y divide-gray-200 dark:divide-gray-700">
-                      {bCards.map((c) => {
-                        const listName = c.listName || 'Unknown'
-                        const availableLists = boardLists.get(bid) || []
-                        const cardLink = `/board/${bid}?cardId=${c.id}`
-                        
-                        return (
-                          <Link
-                            key={c.id}
-                            href={cardLink}
-                            className="block group p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
-                          >
-                            <div className="flex items-start justify-between gap-4">
-                              <div className="flex-1 min-w-0">
-                                <h3 className="font-medium text-gray-900 dark:text-white mb-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors line-clamp-1">
-                                  {c.title}
-                                </h3>
-                                {c.labels.length > 0 && (
-                                  <div className="flex flex-wrap gap-1.5 mb-2">
-                                    {c.labels.map((l) => (
-                                      <span key={l.id} className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${labelColorMap[l.color] || labelColorMap.gray}`}>
-                                        {l.name}
-                                      </span>
-                                    ))}
-                                  </div>
-                                )}
-                                {c.description && (
-                                  <p className="text-sm text-gray-500 dark:text-gray-400 line-clamp-1">
-                                    {c.description}
-                                  </p>
-                                )}
-                              </div>
+                  {/* Board Filter */}
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">Board</label>
+                    <select
+                      value={filterBoard || ''}
+                      onChange={(e) => setFilterBoard(e.target.value || null)}
+                      className="w-full px-3 py-1.5 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="">All Boards</option>
+                      {Array.from(boardNames.entries()).map(([id, name]) => (
+                        <option key={id} value={id}>{name}</option>
+                      ))}
+                    </select>
+                  </div>
 
-                              <div className="flex items-center gap-3 flex-shrink-0">
-                                <div className="flex flex-col items-end gap-2">
-                                  <div className="relative" onClick={(e) => e.preventDefault()}>
-                                    <button
-                                      onClick={(e) => {
-                                        e.preventDefault()
-                                        setDropdownOpen(dropdownOpen === c.id ? null : c.id)
-                                      }}
-                                      className="hover:opacity-80 transition-opacity"
-                                    >
-                                      <StatusBadge status={listName} />
-                                    </button>
-                                    {dropdownOpen === c.id && (
-                                      <div className="absolute top-full right-0 mt-2 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg z-10 min-w-max overflow-hidden">
-                                        {availableLists.map((list) => (
-                                          <button
-                                            key={list.id}
-                                            onClick={(e) => {
-                                              e.preventDefault()
-                                              handleMoveCard(c.id, c.listId, list.id)
-                                            }}
-                                            className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors first:rounded-t-lg last:rounded-b-lg"
-                                          >
-                                            {list.title}
-                                          </button>
+                  {/* Label Filter */}
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">Label</label>
+                    <select
+                      value={filterLabel || ''}
+                      onChange={(e) => setFilterLabel(e.target.value || null)}
+                      className="w-full px-3 py-1.5 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="">All Labels</option>
+                      {allLabels.map((label) => (
+                        <option key={label.id} value={label.id}>{label.name}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Sort */}
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">Sort By</label>
+                    <select
+                      value={sortBy}
+                      onChange={(e) => setSortBy(e.target.value as 'due-date' | 'title' | 'created')}
+                      className="w-full px-3 py-1.5 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="due-date">Due Date</option>
+                      <option value="title">Title (A-Z)</option>
+                      <option value="created">Newest First</option>
+                    </select>
+                  </div>
+                </div>
+
+                {hasActiveFilters && (
+                  <div className="flex gap-2 flex-wrap">
+                    {filterStatus && (
+                      <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-lg bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 text-xs font-medium">
+                        <span>Status: {filterStatus}</span>
+                        <button onClick={() => setFilterStatus(null)} className="ml-1 text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300">×</button>
+                      </div>
+                    )}
+                    {filterBoard && (
+                      <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-lg bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 text-xs font-medium">
+                        <span>Board: {boardNames.get(filterBoard)}</span>
+                        <button onClick={() => setFilterBoard(null)} className="ml-1 text-purple-500 hover:text-purple-600 dark:text-purple-400 dark:hover:text-purple-300">×</button>
+                      </div>
+                    )}
+                    {filterLabel && (
+                      <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-lg bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 text-xs font-medium">
+                        <span>Label: {allLabels.find(l => l.id === filterLabel)?.name}</span>
+                        <button onClick={() => setFilterLabel(null)} className="ml-1 text-green-500 hover:text-green-600 dark:text-green-400 dark:hover:text-green-300">×</button>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Results Count */}
+            <div className="text-sm text-gray-600 dark:text-gray-400">
+              Showing <span className="font-semibold text-gray-900 dark:text-white">{sortedCards.length}</span> of <span className="font-semibold text-gray-900 dark:text-white">{cards.length}</span> tasks
+            </div>
+
+            {sortedCards.length === 0 ? (
+              <div className="text-center py-12">
+                <svg className="w-12 h-12 mx-auto text-gray-300 dark:text-gray-600 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                <p className="text-gray-500 dark:text-gray-400">No tasks match your filters</p>
+              </div>
+            ) : (
+              <div className="space-y-8">
+                {/* Overview Stats */}
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+                    <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Total Tasks</div>
+                    <div className="text-3xl font-bold text-gray-900 dark:text-white">{totalTasks}</div>
+                  </div>
+                  <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+                    <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">In Progress</div>
+                    <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">{inProgressTasks}</div>
+                  </div>
+                  <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+                    <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Completed</div>
+                    <div className="text-3xl font-bold text-green-600 dark:text-green-400">{completedTasks}</div>
+                  </div>
+                  <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+                    <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Overdue</div>
+                    <div className={`text-3xl font-bold ${overdueTasks > 0 ? 'text-red-600 dark:text-red-400' : 'text-gray-600 dark:text-gray-400'}`}>{overdueTasks}</div>
+                  </div>
+                </div>
+
+                {/* Overall Progress */}
+                <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+                  <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Overall Progress</h2>
+                  <ProgressChart completed={completedTasks} total={totalTasks} />
+                </div>
+
+                {/* Tasks by Board */}
+                <div className="space-y-6">
+                  {Array.from(grouped.entries()).sort().map(([bid, bCards]) => {
+                    const counts = getStatusCounts(bCards)
+                    const boardCompleted = counts.done
+                    const boardTotal = counts.todo + counts.inProgress + counts.done
+                    
+                    return (
+                      <div key={bid} className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+                        {/* Board Header */}
+                        <div className="border-b border-gray-200 dark:border-gray-700 p-6">
+                          <div className="flex items-start justify-between mb-4">
+                            <Link href={`/board/${bid}`} className="inline-flex items-center gap-2 text-lg font-semibold text-gray-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                              {boardNames.get(bid) || 'Unknown Board'}
+                              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
+                            </Link>
+                          </div>
+                          
+                          {/* Board Stats */}
+                          <div className="grid grid-cols-3 gap-4 mb-4">
+                            <div>
+                              <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">To Do</div>
+                              <div className="text-2xl font-bold text-gray-900 dark:text-white">{counts.todo}</div>
+                            </div>
+                            <div>
+                              <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">In Progress</div>
+                              <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{counts.inProgress}</div>
+                            </div>
+                            <div>
+                              <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Done</div>
+                              <div className="text-2xl font-bold text-green-600 dark:text-green-400">{counts.done}</div>
+                            </div>
+                          </div>
+                          
+                          {/* Board Progress */}
+                          <ProgressChart completed={boardCompleted} total={boardTotal} />
+                        </div>
+
+                        {/* Tasks List */}
+                        <div className="divide-y divide-gray-200 dark:divide-gray-700">
+                          {bCards.map((c) => {
+                            const listName = c.listName || 'Unknown'
+                            const availableLists = boardLists.get(bid) || []
+                            const cardLink = `/board/${bid}?cardId=${c.id}`
+                            
+                            return (
+                              <Link
+                                key={c.id}
+                                href={cardLink}
+                                className="block group p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+                              >
+                                <div className="flex items-start justify-between gap-4">
+                                  <div className="flex-1 min-w-0">
+                                    <h3 className="font-medium text-gray-900 dark:text-white mb-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors line-clamp-1">
+                                      {c.title}
+                                    </h3>
+                                    {c.labels.length > 0 && (
+                                      <div className="flex flex-wrap gap-1.5 mb-2">
+                                        {c.labels.map((l) => (
+                                          <span key={l.id} className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${labelColorMap[l.color] || labelColorMap.gray}`}>
+                                            {l.name}
+                                          </span>
                                         ))}
                                       </div>
                                     )}
+                                    {c.description && (
+                                      <p className="text-sm text-gray-500 dark:text-gray-400 line-clamp-1">
+                                        {c.description}
+                                      </p>
+                                    )}
                                   </div>
 
-                                  <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
-                                    {c.dueDate && (
-                                      <span className={`flex items-center gap-1 ${new Date(c.dueDate) < new Date() ? 'text-red-600 dark:text-red-400' : ''}`}>
-                                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 12v6m0 0v6m0-6h6m0 0h6m0 0v-6m0 6V6m0 0h-6m0 0H6m0 0v6" /></svg>
-                                        {new Date(c.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                                      </span>
-                                    )}
-                                    {c.assignees.length > 0 && (
-                                      <span className="flex items-center gap-1">
-                                        <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path d="M10.5 1.5H5.75A2.25 2.25 0 003.5 3.75v12.5A2.25 2.25 0 005.75 18.5h8.5a2.25 2.25 0 002.25-2.25V9.5m-8-8v8m0 0h8m-8 0L19 1.5" /></svg>
-                                        {c.assignees.length}
-                                      </span>
-                                    )}
+                                  <div className="flex items-center gap-3 flex-shrink-0">
+                                    <div className="flex flex-col items-end gap-2">
+                                      <div className="relative" onClick={(e) => e.preventDefault()}>
+                                        <button
+                                          onClick={(e) => {
+                                            e.preventDefault()
+                                            setDropdownOpen(dropdownOpen === c.id ? null : c.id)
+                                          }}
+                                          className="hover:opacity-80 transition-opacity"
+                                        >
+                                          <StatusBadge status={listName} />
+                                        </button>
+                                        {dropdownOpen === c.id && (
+                                          <div className="absolute top-full right-0 mt-2 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg z-10 min-w-max overflow-hidden">
+                                            {availableLists.map((list) => (
+                                              <button
+                                                key={list.id}
+                                                onClick={(e) => {
+                                                  e.preventDefault()
+                                                  handleMoveCard(c.id, c.listId, list.id)
+                                                }}
+                                                className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors first:rounded-t-lg last:rounded-b-lg"
+                                              >
+                                                {list.title}
+                                              </button>
+                                            ))}
+                                          </div>
+                                        )}
+                                      </div>
+
+                                      <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
+                                        {c.dueDate && (
+                                          <span className={`flex items-center gap-1 ${new Date(c.dueDate) < new Date() ? 'text-red-600 dark:text-red-400' : ''}`}>
+                                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 12v6m0 0v6m0-6h6m0 0h6m0 0v-6m0 6V6m0 0h-6m0 0H6m0 0v6" /></svg>
+                                            {new Date(c.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                          </span>
+                                        )}
+                                        {c.assignees.length > 0 && (
+                                          <span className="flex items-center gap-1">
+                                            <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path d="M10.5 1.5H5.75A2.25 2.25 0 003.5 3.75v12.5A2.25 2.25 0 005.75 18.5h8.5a2.25 2.25 0 002.25-2.25V9.5m-8-8v8m0 0h8m-8 0L19 1.5" /></svg>
+                                            {c.assignees.length}
+                                          </span>
+                                        )}
+                                      </div>
+                                    </div>
+
+                                    <OverdueIndicator dueDate={c.dueDate} />
                                   </div>
                                 </div>
-
-                                <OverdueIndicator dueDate={c.dueDate} />
-                              </div>
-                            </div>
-                          </Link>
-                        )
-                      })}
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
+                              </Link>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </main>

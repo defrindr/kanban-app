@@ -16,6 +16,7 @@ import {
   fetchNotifications, markNotificationRead as apiMarkRead,
   transformActivity,
   getWebhooks, createWebhook, updateWebhook, deleteWebhook,
+  updateMemberRole as apiUpdateMemberRole,
 } from '../api/mock-api'
 import { apiClient } from '@/shared/api/client'
 import { KanbanHeader } from './kanban-header'
@@ -355,6 +356,18 @@ export function KanbanBoard({ boardId }: Props) {
     }
   }
 
+  async function handleUpdateMemberRole(memberId: string, role: 'ADMIN' | 'MEMBER') {
+    if (!currentBoard) return
+    const res = await apiUpdateMemberRole(currentBoard.id, memberId, role)
+    if (res.ok) {
+      const updated = { ...currentBoard, members: currentBoard.members.map(m => m.id === memberId ? { ...m, role } : m) }
+      setCurrentBoard(updated)
+      toast.success(`Member role updated to ${role}`)
+    } else {
+      toast.error(res.error?.message || 'Failed to update member role')
+    }
+  }
+
   // Filter cards based on search
   const filteredLists = currentBoard?.lists.map((list) => {
     const q = searchQuery.toLowerCase().trim()
@@ -462,7 +475,7 @@ export function KanbanBoard({ boardId }: Props) {
         <div className="fixed inset-0 z-40 lg:hidden">
            <div className="absolute inset-0 bg-black/50" onClick={() => setShowRight(false)} />
            <div className="absolute right-0 top-0 bottom-0 w-80 bg-white dark:bg-gray-800 shadow-xl">
-             <RightSidebar activeTab={rightTab} onTabChange={setRightTab} activities={activities} board={currentBoard} onUpdateBoard={handleUpdateBoard} onAddMember={handleAddBoardMember} onRemoveMember={handleRemoveBoardMember} onDeleteBoard={handleDeleteBoard} webhooks={webhooks} onCreateWebhook={handleCreateWebhook} onUpdateWebhook={handleUpdateWebhook} onDeleteWebhook={handleDeleteWebhook} />
+            <RightSidebar activeTab={rightTab} onTabChange={setRightTab} activities={activities} board={currentBoard} onUpdateBoard={handleUpdateBoard} onAddMember={handleAddBoardMember} onRemoveMember={handleRemoveBoardMember} onUpdateMemberRole={handleUpdateMemberRole} onDeleteBoard={handleDeleteBoard} webhooks={webhooks} onCreateWebhook={handleCreateWebhook} onUpdateWebhook={handleUpdateWebhook} onDeleteWebhook={handleDeleteWebhook} />
            </div>
          </div>
       )}

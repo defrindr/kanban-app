@@ -17,6 +17,7 @@ interface Props {
   onUpdateBoard?: (data: { name?: string; description?: string; visibility?: 'workspace' | 'private' | 'public' }) => void
   onAddMember?: (member: BoardMember) => void
   onRemoveMember?: (memberId: string) => void
+  onUpdateMemberRole?: (memberId: string, role: 'ADMIN' | 'MEMBER') => void
   onDeleteBoard?: () => void
   webhooks?: Webhook[]
   onCreateWebhook?: (url: string, events: string[]) => void
@@ -40,7 +41,7 @@ function getAvatarGradient(id: string) {
 }
 
 export function RightSidebar({
-  activeTab, onTabChange, activities, board, onUpdateBoard, onAddMember, onRemoveMember, onDeleteBoard,
+  activeTab, onTabChange, activities, board, onUpdateBoard, onAddMember, onRemoveMember, onUpdateMemberRole, onDeleteBoard,
   webhooks = [], onCreateWebhook, onUpdateWebhook, onDeleteWebhook
 }: Props) {
   const [boardName, setBoardName] = useState(board?.name || '')
@@ -90,7 +91,7 @@ export function RightSidebar({
 
   function handleAddMember() {
     if (!newMemberName.trim() || !newMemberEmail.trim() || !board) return
-    onAddMember?.({ id: `member-${Date.now()}`, name: newMemberName.trim(), email: newMemberEmail.trim(), avatar: getInitials(newMemberName) })
+    onAddMember?.({ id: `member-${Date.now()}`, name: newMemberName.trim(), email: newMemberEmail.trim(), avatar: getInitials(newMemberName), role: 'MEMBER' })
     setNewMemberName(''); setNewMemberEmail('')
   }
 
@@ -225,17 +226,32 @@ export function RightSidebar({
               <h4 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2.5">Members ({board?.members.length || 0})</h4>
               <div className="space-y-1 mb-3">
                 {board?.members.map((m) => (
-                  <div key={m.id} className="flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg group">
+                  <div key={m.id} className="flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg group hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
                     <div className={`w-7 h-7 rounded-full bg-gradient-to-br ${getAvatarGradient(m.id)} flex items-center justify-center text-white text-[10px] font-medium flex-shrink-0`}>{m.avatar}</div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">{m.name}</p>
                       <p className="text-xs text-gray-400 dark:text-gray-500 truncate">{m.email}</p>
                     </div>
-                    {onRemoveMember && board.ownerId !== m.id && (
-                      <button onClick={() => onRemoveMember(m.id)} className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-500 transition-all p-0.5">
-                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
-                      </button>
-                    )}
+                    <div className="flex items-center gap-1.5">
+                      {board.ownerId !== m.id && onUpdateMemberRole && (
+                        <select
+                          value={m.role || 'MEMBER'}
+                          onChange={(e) => onUpdateMemberRole(m.id, e.target.value as 'ADMIN' | 'MEMBER')}
+                          className="text-xs px-2 py-1 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        >
+                          <option value="MEMBER">Member</option>
+                          <option value="ADMIN">Admin</option>
+                        </select>
+                      )}
+                      {board.ownerId === m.id && (
+                        <span className="text-xs px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded font-medium">Owner</span>
+                      )}
+                      {onRemoveMember && board.ownerId !== m.id && (
+                        <button onClick={() => onRemoveMember(m.id)} className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-500 transition-all p-0.5">
+                          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                        </button>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>

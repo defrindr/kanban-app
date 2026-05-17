@@ -29,7 +29,7 @@ function transformCard(c: any): Card {
     })),
     assignees: (c.cardAssignees || []).map((ca: any) => {
       const u = ca.user || {}
-      return { id: u.id, name: u.name, email: u.email || '', avatar: u.avatar || getInitials(u.name) }
+      return { id: u.id, name: u.name, email: u.email || '', avatar: u.avatar || getInitials(u.name), role: u.role || 'MEMBER' }
     }),
     comments: (c.comments || []).map((cm: any) => ({
       id: cm.id,
@@ -72,7 +72,7 @@ function transformBoard(b: any): Board {
     lists: (b.lists || []).map(transformList),
     members: (b.members || []).map((m: any) => {
       const u = m.user || {}
-      return { id: u.id, name: u.name, email: u.email || '', avatar: u.avatar || getInitials(u.name) }
+      return { id: u.id, name: u.name, email: u.email || '', avatar: u.avatar || getInitials(u.name), role: u.role || 'MEMBER' }
     }),
     createdAt: b.createdAt,
     updatedAt: b.updatedAt,
@@ -422,7 +422,7 @@ export async function getBoardMembers(boardId: string): Promise<{ ok: true; data
     ok: true,
     data: (res.data || []).map((m: any) => {
       const u = m.user || {}
-      return { id: u.id, name: u.name, email: u.email || '', avatar: u.avatar || getInitials(u.name) }
+      return { id: u.id, name: u.name, email: u.email || '', avatar: u.avatar || getInitials(u.name), role: u.role || 'MEMBER' }
     }),
   }
 }
@@ -436,7 +436,7 @@ export async function updateMemberRole(boardId: string, memberId: string, role: 
   const u = res.data.user || {}
   return {
     ok: true,
-    data: { id: u.id, name: u.name, email: u.email || '', avatar: u.avatar || getInitials(u.name) },
+    data: { id: u.id, name: u.name, email: u.email || '', avatar: u.avatar || getInitials(u.name), role: u.role || 'MEMBER' },
   }
 }
 
