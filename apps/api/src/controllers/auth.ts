@@ -6,14 +6,17 @@ import { authGuard, signToken } from '../middleware/auth.js';
 import { asyncHandler } from '../middleware/error-handler.js';
 import { loginLimiter, registerLimiter } from '../middleware/rate-limit.js';
 import { AppError } from '../errors.js';
+import { FIELD_LENGTHS } from '../config/constants.js';
 import { z } from 'zod';
 
 const router = Router();
 
+const REFRESH_EXPIRY_DAYS = 30;
+
 const RegisterSchema = z.object({
   email: z.string().email(),
-  name: z.string().min(1).max(100),
-  password: z.string().min(6).max(128),
+  name: z.string().min(FIELD_LENGTHS.NAME_MIN).max(FIELD_LENGTHS.NAME_MAX),
+  password: z.string().min(FIELD_LENGTHS.PASSWORD_MIN).max(FIELD_LENGTHS.PASSWORD_MAX),
 });
 
 const LoginSchema = z.object({
@@ -24,8 +27,6 @@ const LoginSchema = z.object({
 const RefreshSchema = z.object({
   refreshToken: z.string().min(1),
 });
-
-const REFRESH_EXPIRY_DAYS = 30;
 
 function hashToken(token: string) {
   return createHash('sha256').update(token).digest('hex');

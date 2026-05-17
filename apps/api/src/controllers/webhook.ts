@@ -4,6 +4,7 @@ import { prisma, io } from '../app.js';
 import { validateBody } from '../middleware/validate.js';
 import { asyncHandler } from '../middleware/error-handler.js';
 import { AppError } from '../errors.js';
+import { FIELD_LENGTHS } from '../config/constants.js';
 import { z } from 'zod';
 
 const router = Router({ mergeParams: true });
@@ -20,12 +21,12 @@ const VALID_EVENTS = [
 ] as const;
 
 const CreateWebhookSchema = z.object({
-  url: z.string().url().max(500),
+  url: z.string().url().max(FIELD_LENGTHS.WEBHOOK_URL_MAX),
   events: z.array(z.enum(VALID_EVENTS)).min(1),
 });
 
 const UpdateWebhookSchema = z.object({
-  url: z.string().url().max(500).optional(),
+  url: z.string().url().max(FIELD_LENGTHS.WEBHOOK_URL_MAX).optional(),
   events: z.array(z.enum(VALID_EVENTS)).min(1).optional(),
   active: z.boolean().optional(),
 });

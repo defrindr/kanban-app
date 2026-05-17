@@ -24,6 +24,9 @@ export const FIELD_LENGTHS = {
   LABEL_NAME_MAX: 50,
   SEARCH_QUERY_MIN: 1,
   SEARCH_QUERY_MAX: 200,
+  PASSWORD_MIN: 6,
+  PASSWORD_MAX: 128,
+  WEBHOOK_URL_MAX: 500,
 } as const;
 
 // Analytics
@@ -32,6 +35,7 @@ export const ANALYTICS = {
   TOP_CONTRIBUTORS_LIMIT: 5,
   TOP_BOARDS_LIMIT: 5,
   TOP_BOARDS_USAGE_LIMIT: 10,
+  MIN_DAYS: 1,
 } as const;
 
 // Cache TTL (seconds)
@@ -41,6 +45,14 @@ export const CACHE_TTL = {
   COMMENTS: 30,
   ACTIVITIES: 20,
   SEARCH: 30,
+} as const;
+
+// Time constants (milliseconds)
+export const TIME = {
+  MS_PER_SECOND: 1000,
+  SECONDS_PER_MINUTE: 60,
+  MINUTES_PER_HOUR: 60,
+  HOURS_PER_DAY: 24,
 } as const;
 
 // Role types
@@ -81,3 +93,4 @@ export const SEARCH_TYPES = {
   LISTS: 'lists',
   COMMENTS: 'comments',
 } as const;
+

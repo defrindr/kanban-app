@@ -7,6 +7,7 @@ import { CreateBoardSchema, UpdateBoardSchema, PaginationSchema, BoardSearchSche
 import { cacheGet, cacheSet, cacheDel } from '../utils/cache.js';
 import { notifyBoard } from '../utils/notifications.js';
 import { logActivity } from '../utils/activity.js';
+import { PAGINATION, FIELD_LENGTHS, ANALYTICS, BOARD_ROLES, ENTITY_TYPES, ACTIVITY_ACTIONS, SEARCH_TYPES } from '../config/constants.js';
 import { z } from 'zod';
 import { ActivityAction as PrismaActivityAction, EntityType as PrismaEntityType, Prisma } from '@prisma/client';
 
@@ -79,10 +80,10 @@ router.get(
 );
 
 const GlobalSearchSchema = z.object({
-  q: z.string().min(1).max(200),
-  type: z.enum(['all', 'boards', 'cards', 'lists', 'comments']).optional().default('all'),
-  page: z.coerce.number().int().min(1).default(1),
-  limit: z.coerce.number().int().min(1).max(50).default(20),
+  q: z.string().min(FIELD_LENGTHS.SEARCH_QUERY_MIN).max(FIELD_LENGTHS.SEARCH_QUERY_MAX),
+  type: z.enum([SEARCH_TYPES.ALL, SEARCH_TYPES.BOARDS, SEARCH_TYPES.CARDS, SEARCH_TYPES.LISTS, SEARCH_TYPES.COMMENTS]).optional().default(SEARCH_TYPES.ALL),
+  page: z.coerce.number().int().min(PAGINATION.MIN_PAGE).default(PAGINATION.DEFAULT_PAGE),
+  limit: z.coerce.number().int().min(PAGINATION.MIN_PAGE).max(PAGINATION.SEARCH_MAX_LIMIT).default(PAGINATION.SEARCH_DEFAULT_LIMIT),
 });
 
 router.get(
@@ -275,8 +276,8 @@ router.delete(
 );
 
 const ActivityFilterSchema = z.object({
-  page: z.coerce.number().int().min(1).default(1),
-  limit: z.coerce.number().int().min(1).max(100).default(20),
+  page: z.coerce.number().int().min(PAGINATION.MIN_PAGE).default(PAGINATION.DEFAULT_PAGE),
+  limit: z.coerce.number().int().min(PAGINATION.MIN_PAGE).max(PAGINATION.MAX_LIMIT).default(PAGINATION.DEFAULT_LIMIT),
   action: z.nativeEnum(PrismaActivityAction).optional(),
   entityType: z.nativeEnum(PrismaEntityType).optional(),
   userId: z.string().optional(),

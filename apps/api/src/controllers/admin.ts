@@ -3,6 +3,7 @@ import { prisma } from '../app.js';
 import { asyncHandler } from '../middleware/error-handler.js';
 import { adminGuard } from '../middleware/auth.js';
 import { AppError } from '../errors.js';
+import { PAGINATION, FIELD_LENGTHS, ANALYTICS, ENTITY_TYPES, ACTIVITY_ACTIONS } from '../config/constants.js';
 import { z } from 'zod';
 import { Prisma } from '@prisma/client';
 
@@ -11,8 +12,8 @@ const router = Router();
 router.use(adminGuard);
 
 const PaginationSchema = z.object({
-  page: z.coerce.number().int().min(1).default(1),
-  limit: z.coerce.number().int().min(1).max(100).default(20),
+  page: z.coerce.number().int().min(PAGINATION.MIN_PAGE).default(PAGINATION.DEFAULT_PAGE),
+  limit: z.coerce.number().int().min(PAGINATION.MIN_PAGE).max(PAGINATION.MAX_LIMIT).default(PAGINATION.DEFAULT_LIMIT),
 });
 
 const UpdateUserRoleSchema = z.object({
@@ -122,11 +123,11 @@ router.delete(
 );
 
 const ActivityFilterSchema = z.object({
-  page: z.coerce.number().int().min(1).default(1),
-  limit: z.coerce.number().int().min(1).max(100).default(20),
+  page: z.coerce.number().int().min(PAGINATION.MIN_PAGE).default(PAGINATION.DEFAULT_PAGE),
+  limit: z.coerce.number().int().min(PAGINATION.MIN_PAGE).max(PAGINATION.MAX_LIMIT).default(PAGINATION.DEFAULT_LIMIT),
   boardId: z.string().optional(),
-  action: z.enum(['CREATE', 'UPDATE', 'DELETE', 'MOVE']).optional(),
-  entityType: z.enum(['BOARD', 'LIST', 'CARD', 'COMMENT']).optional(),
+  action: z.enum([ACTIVITY_ACTIONS.CREATE, ACTIVITY_ACTIONS.UPDATE, ACTIVITY_ACTIONS.DELETE, ACTIVITY_ACTIONS.MOVE]).optional(),
+  entityType: z.enum([ENTITY_TYPES.BOARD, ENTITY_TYPES.LIST, ENTITY_TYPES.CARD, ENTITY_TYPES.COMMENT]).optional(),
   userId: z.string().optional(),
   dateFrom: z.string().datetime().optional(),
   dateTo: z.string().datetime().optional(),
@@ -135,8 +136,18 @@ const ActivityFilterSchema = z.object({
 router.get(
   '/activities',
   asyncHandler(async (req, res) => {
-    const filters = ActivityFilterSchema.parse(req.query);
-    const skip = (filters.page - 1) * filters.limit;
+    const parsed = ActivityFilterSchema.parse(req.query);
+    const filters = {
+      page: Number(parsed.page),
+      limit: Number(parsed.limit),
+      boardId: parsed.boardId,
+      action: parsed.action,
+      entityType: parsed.entityType,
+      userId: parsed.userId,
+      dateFrom: parsed.dateFrom,
+      dateTo: parsed.dateTo,
+    }
+    const skip = (filters.page - 1) * filters.limit
 
     const where: Record<string, unknown> = {};
     if (filters.boardId) where.boardId = filters.boardId;
@@ -145,8 +156,12 @@ router.get(
     if (filters.userId) where.userId = filters.userId;
     if (filters.dateFrom || filters.dateTo) {
       where.createdAt = {};
-      if (filters.dateFrom) (where.createdAt as Record<string, unknown>).gte = new Date(filters.dateFrom);
-      if (filters.dateTo) (where.createdAt as Record<string, unknown>).lte = new Date(filters.dateTo);
+      if (filters.dateFrom) {
+        (where.createdAt as Record<string, unknown>).gte = new Date(filters.dateFrom as string);
+      }
+      if (filters.dateTo) {
+        (where.createdAt as Record<string, unknown>).lte = new Date(filters.dateTo as string);
+      }
     }
 
     const [activities, total] = await Promise.all([
@@ -190,7 +205,7 @@ router.get(
   '/analytics',
   asyncHandler(async (_, res) => {
     const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - ANALYTICS.DAYS_LOOKBACK);
 
     // Fetch basic stats
     const [users, boards, lists, cards, comments] = await Promise.all([
@@ -270,7 +285,7 @@ router.get(
         members: true,
       },
       orderBy: { updatedAt: 'desc' },
-      take: 10,
+      take: ANALYTICS.TOP_BOARDS_USAGE_LIMIT,
     });
 
     const boardUsage = boardStats.map((board) => {
@@ -293,7 +308,7 @@ router.get(
     // Top contributors
     const topContributors = userEngagement
       .sort((a, b) => (b.cardsCreated + b.commentsAdded) - (a.cardsCreated + a.commentsAdded))
-      .slice(0, 5)
+      .slice(0, ANALYTICS.TOP_CONTRIBUTORS_LIMIT)
       .map(u => ({
         name: u.username,
         avatar: u.avatar,
@@ -303,7 +318,7 @@ router.get(
     // Most active boards
     const mostActiveBoards = boardUsage
       .sort((a, b) => b.avgCardsPerDay - a.avgCardsPerDay)
-      .slice(0, 5)
+      .slice(0, ANALYTICS.TOP_BOARDS_LIMIT)
       .map(b => ({
         name: b.boardName,
         activity: Math.round(b.avgCardsPerDay * 100) / 100,
@@ -313,7 +328,7 @@ router.get(
       ok: true,
       data: {
         stats: { users, boards, lists, cards, comments },
-        dailyActivity: dailyActivity.slice(-30),
+        dailyActivity: dailyActivity.slice(-ANALYTICS.DAYS_LOOKBACK),
         userEngagement,
         boardUsage,
         topContributors,

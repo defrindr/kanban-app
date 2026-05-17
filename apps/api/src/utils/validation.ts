@@ -1,43 +1,44 @@
 import { z } from 'zod';
+import { PAGINATION, FIELD_LENGTHS, BOARD_ROLES, SEARCH_TYPES } from '../config/constants.js';
 
 export const CuidSchema = z.string().cuid();
 
 export const PaginationSchema = z.object({
-  page: z.coerce.number().int().min(1).default(1),
-  limit: z.coerce.number().int().min(1).max(100).default(20),
+  page: z.coerce.number().int().min(PAGINATION.MIN_PAGE).default(PAGINATION.DEFAULT_PAGE),
+  limit: z.coerce.number().int().min(PAGINATION.MIN_PAGE).max(PAGINATION.MAX_LIMIT).default(PAGINATION.DEFAULT_LIMIT),
 });
 
 export const CreateBoardSchema = z.object({
-  name: z.string().min(1, 'Name is required').max(100),
-  description: z.string().max(500).optional(),
+  name: z.string().min(FIELD_LENGTHS.NAME_MIN, 'Name is required').max(FIELD_LENGTHS.NAME_MAX),
+  description: z.string().max(FIELD_LENGTHS.DESCRIPTION_MAX).optional(),
 });
 
 export const UpdateBoardSchema = z.object({
-  name: z.string().min(1).max(100).optional(),
-  description: z.string().max(500).optional(),
+  name: z.string().min(FIELD_LENGTHS.NAME_MIN).max(FIELD_LENGTHS.NAME_MAX).optional(),
+  description: z.string().max(FIELD_LENGTHS.DESCRIPTION_MAX).optional(),
 });
 
 export const CreateListSchema = z.object({
   boardId: CuidSchema,
-  title: z.string().min(1, 'Title is required').max(100),
+  title: z.string().min(FIELD_LENGTHS.TITLE_MIN, 'Title is required').max(FIELD_LENGTHS.TITLE_MAX),
   position: z.number().optional(),
 });
 
 export const UpdateListSchema = z.object({
-  title: z.string().min(1).max(100).optional(),
+  title: z.string().min(FIELD_LENGTHS.TITLE_MIN).max(FIELD_LENGTHS.TITLE_MAX).optional(),
   position: z.number().optional(),
 });
 
 export const CreateCardSchema = z.object({
   listId: CuidSchema,
-  title: z.string().min(1, 'Title is required').max(200),
-  description: z.string().max(2000).optional(),
+  title: z.string().min(FIELD_LENGTHS.CARD_TITLE_MIN, 'Title is required').max(FIELD_LENGTHS.CARD_TITLE_MAX),
+  description: z.string().max(FIELD_LENGTHS.CARD_DESCRIPTION_MAX).optional(),
   position: z.number().optional(),
 });
 
 export const UpdateCardSchema = z.object({
-  title: z.string().min(1).max(200).optional(),
-  description: z.string().max(2000).optional(),
+  title: z.string().min(FIELD_LENGTHS.CARD_TITLE_MIN).max(FIELD_LENGTHS.CARD_TITLE_MAX).optional(),
+  description: z.string().max(FIELD_LENGTHS.CARD_DESCRIPTION_MAX).optional(),
   labels: z.array(z.string()).optional(),
   assignees: z.array(z.string()).optional(),
   startDate: z.string().nullable().optional(),
@@ -56,7 +57,7 @@ export const MoveCardSchema = z.object({
 });
 
 export const CreateCardLabelSchema = z.object({
-  name: z.string().min(1).max(50),
+  name: z.string().min(FIELD_LENGTHS.LABEL_NAME_MIN).max(FIELD_LENGTHS.LABEL_NAME_MAX),
   color: z.string().regex(/^#[0-9a-fA-F]{6}$/).default('#3B82F6'),
 });
 
@@ -66,19 +67,19 @@ export const DeleteCardLabelSchema = z.object({
 
 export const AddMemberSchema = z.object({
   userId: z.string().min(1),
-  role: z.enum(['ADMIN', 'MEMBER', 'VIEWER']).optional(),
+  role: z.enum([BOARD_ROLES.ADMIN, BOARD_ROLES.MEMBER, BOARD_ROLES.VIEWER]).optional(),
 });
 
 export const UpdateMemberRoleSchema = z.object({
-  role: z.enum(['ADMIN', 'MEMBER', 'VIEWER']),
+  role: z.enum([BOARD_ROLES.ADMIN, BOARD_ROLES.MEMBER, BOARD_ROLES.VIEWER]),
 });
 
 export const CreateCommentSchema = z.object({
-  content: z.string().min(1).max(2000),
+  content: z.string().min(FIELD_LENGTHS.COMMENT_MIN).max(FIELD_LENGTHS.COMMENT_MAX),
 });
 
 export const UpdateCommentSchema = z.object({
-  content: z.string().min(1).max(2000),
+  content: z.string().min(FIELD_LENGTHS.COMMENT_MIN).max(FIELD_LENGTHS.COMMENT_MAX),
 });
 
 export const AddCardAssigneeSchema = z.object({
@@ -98,8 +99,8 @@ export const CardSearchSchema = z.object({
   archived: z.coerce.boolean().optional(),
   dueBefore: z.string().optional(),
   dueAfter: z.string().optional(),
-  page: z.coerce.number().int().min(1).default(1),
-  limit: z.coerce.number().int().min(1).max(100).default(20),
+  page: z.coerce.number().int().min(PAGINATION.MIN_PAGE).default(PAGINATION.DEFAULT_PAGE),
+  limit: z.coerce.number().int().min(PAGINATION.MIN_PAGE).max(PAGINATION.MAX_LIMIT).default(PAGINATION.DEFAULT_LIMIT),
 });
 
 export const DeleteCardAssigneeSchema = z.object({
