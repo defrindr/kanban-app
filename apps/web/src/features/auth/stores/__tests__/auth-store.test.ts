@@ -69,7 +69,7 @@ describe('AuthStore', () => {
   describe('logout', () => {
     it('clears token and user', () => {
       localStorage.setItem('kanban-token', 'abc')
-      useAuthStore.setState({ user: { id: 'u1', name: 'John', email: 'a@b.com', avatar: '' } })
+      useAuthStore.setState({ user: { id: 'u1', name: 'John', email: 'a@b.com', avatar: '', role: 'USER' } })
 
       useAuthStore.getState().logout()
       expect(localStorage.getItem('kanban-token')).toBeNull()

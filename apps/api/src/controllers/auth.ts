@@ -75,8 +75,8 @@ router.post(
       data: { email, name, password: hashed },
     });
 
-    const adminEmail = process.env.ADMIN_EMAIL;
-    if (adminEmail && email.toLowerCase() === adminEmail.toLowerCase()) {
+    const adminExists = await prisma.user.findFirst({ where: { role: 'ADMIN' } });
+    if (!adminExists) {
       await prisma.user.update({ where: { id: user.id }, data: { role: 'ADMIN' } });
     }
 
@@ -84,8 +84,6 @@ router.post(
     const refreshToken = await createRefreshToken(created.id);
 
     res.status(201).json(respondWithTokens(created, refreshToken));
-
-    res.status(201).json(respondWithTokens(user, refreshToken));
   })
 );
 
@@ -170,7 +168,7 @@ router.get(
   asyncHandler(async (req, res) => {
     const user = await prisma.user.findUnique({
       where: { id: req.user!.userId },
-      select: { id: true, email: true, name: true, avatar: true, createdAt: true },
+      select: { id: true, email: true, name: true, avatar: true, role: true, createdAt: true },
     });
     if (!user) {
       throw new AppError('NOT_FOUND', 'User not found', 404);

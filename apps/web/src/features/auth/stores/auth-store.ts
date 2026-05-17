@@ -6,6 +6,7 @@ export interface User {
   name: string
   email: string
   avatar: string
+  role: string
 }
 
 interface AuthStore {
@@ -43,9 +44,9 @@ export const useAuthStore = create<AuthStore>((set) => ({
       set({ isLoading: false })
       return
     }
-    const res = await apiClient<{ id: string; email: string; name: string; avatar: string | null }>('/api/auth/me')
+    const res = await apiClient<{ id: string; email: string; name: string; avatar: string | null; role: string }>('/api/auth/me')
     if (res.ok) {
-      set({ user: { ...res.data, avatar: res.data.avatar || res.data.name.split(' ').map((n: string) => n[0]).join('') }, isLoading: false })
+      set({ user: { ...res.data, avatar: res.data.avatar || res.data.name.split(' ').map((n: string) => n[0]).join(''), role: res.data.role || 'USER' }, isLoading: false })
     } else {
       set({ isLoading: false })
     }
@@ -53,7 +54,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
 
   login: async (email, password) => {
     set({ isLoading: true })
-    const res = await apiClient<{ token: string; user: { id: string; email: string; name: string; avatar: string | null } }>('/api/auth/login', {
+    const res = await apiClient<{ token: string; user: { id: string; email: string; name: string; avatar: string | null; role: string } }>('/api/auth/login', {
       method: 'POST',
       body: JSON.stringify({ email, password }),
     })
@@ -75,7 +76,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
 
   register: async (name, email, password) => {
     set({ isLoading: true })
-    const res = await apiClient<{ token: string; user: { id: string; email: string; name: string; avatar: string | null } }>('/api/auth/register', {
+    const res = await apiClient<{ token: string; user: { id: string; email: string; name: string; avatar: string | null; role: string } }>('/api/auth/register', {
       method: 'POST',
       body: JSON.stringify({ email, name, password }),
     })

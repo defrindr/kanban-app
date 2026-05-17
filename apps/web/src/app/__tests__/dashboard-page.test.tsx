@@ -11,7 +11,7 @@ const mockBoards: any[] = []
 vi.mock('@/features/auth/stores/auth-store', () => ({
   useAuthStore: Object.assign(
     (selector?: any) => {
-      const state = { user: { id: 'u1', name: 'John', email: 'john@test.com', avatar: 'JD' }, isLoading: false }
+      const state = { user: { id: 'u1', name: 'John', email: 'john@test.com', avatar: 'JD', role: 'USER' }, isLoading: false }
       return selector ? selector(state) : state
     },
     { setState: vi.fn(), getState: () => ({ checkAuth: vi.fn() }) },
