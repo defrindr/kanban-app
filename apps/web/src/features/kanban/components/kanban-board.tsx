@@ -15,6 +15,7 @@ import {
   uploadAttachment, deleteBoard as apiDeleteBoard,
   fetchNotifications, markNotificationRead as apiMarkRead,
   transformActivity,
+  getWebhooks, createWebhook, updateWebhook, deleteWebhook,
 } from '../api/mock-api'
 import { apiClient } from '@/shared/api/client'
 import { KanbanHeader } from './kanban-header'
@@ -44,13 +45,14 @@ export function KanbanBoard({ boardId }: Props) {
 
   const [selectedCard, setSelectedCard] = useState<Card | null>(null)
   const selectedCardRef = useRef<Card | null>(null)
-  const [rightTab, setRightTab] = useState<'settings' | 'activity'>('activity')
+  const [rightTab, setRightTab] = useState<'settings' | 'activity' | 'webhooks'>('activity')
   const [showRight, setShowRight] = useState(false)
   const [showMobileMenu, setShowMobileMenu] = useState(false)
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [showArchived, setShowArchived] = useState(false)
   const [onlineCount, setOnlineCount] = useState(1)
+  const [webhooks, setWebhooks] = useState<any[]>([])
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }))
 
@@ -82,10 +84,12 @@ export function KanbanBoard({ boardId }: Props) {
       ])
       if (boardRes.ok) {
         setCurrentBoard(boardRes.data)
-        const [actRes] = await Promise.all([
+        const [actRes, webhookRes] = await Promise.all([
           fetchActivities(boardId),
+          getWebhooks(boardId),
         ])
         if (actRes.ok) setActivities(actRes.data)
+        if (webhookRes.ok) setWebhooks(webhookRes.data)
       }
       if (notifRes.ok) setNotifications(notifRes.data)
       setLoading(false)
