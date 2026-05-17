@@ -528,5 +528,5 @@ export default function MockupPage() {
         )}
       </div>
     </div>
-  );
+  )
 }

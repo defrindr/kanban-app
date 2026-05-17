@@ -6,7 +6,7 @@ import type { Activity, Board, BoardMember } from '../../types/kanban'
 const baseBoard: Board = {
   id: 'b1', name: 'Test Board', description: 'A description', ownerId: 'u1',
   visibility: 'workspace', lists: [], members: [
-    { id: 'u1', name: 'John', email: 'john@test.com', avatar: 'JD' },
+    { id: 'u1', name: 'John', email: 'john@test.com', role: 'ADMIN', avatar: 'JD' },
   ],
   createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z',
 }

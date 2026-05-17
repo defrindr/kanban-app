@@ -69,7 +69,9 @@ describe('BoardStore edge cases', () => {
     useBoardStore.getState().moveCard(makeCard({ id: 'c2', position: 2 }), 'l1', 'l2', 1)
     const cards = useBoardStore.getState().currentBoard?.lists.find(l => l.id === 'l2')?.cards
     expect(cards).toHaveLength(2)
-    expect(cards?.[0].position).toBeLessThanOrEqual(cards?.[1].position)
+    if (cards && cards.length === 2) {
+      expect(cards[0].position).toBeLessThanOrEqual(cards[1].position)
+    }
   })
 
   it('addCard only adds to correct list', () => {

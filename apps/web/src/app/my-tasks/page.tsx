@@ -6,6 +6,8 @@ import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/features/auth/stores/auth-store'
 import { useDarkMode } from '@/shared/hooks/use-dark-mode'
 import { fetchMyTasks, fetchBoards, moveCard } from '@/features/kanban/api/mock-api'
+import { CalendarView } from './components/calendar-view'
+import { TimelineView } from './components/timeline-view'
 import type { Card, Board } from '@/features/kanban/types/kanban'
 
 const labelColorMap: Record<string, string> = {
@@ -120,7 +122,10 @@ export default function MyTasksPage() {
   const [filterStatus, setFilterStatus] = useState<string | null>(null)
   const [filterBoard, setFilterBoard] = useState<string | null>(null)
   const [filterLabel, setFilterLabel] = useState<string | null>(null)
+  const [filterAssignee, setFilterAssignee] = useState<string | null>(null)
+  const [filterDueDate, setFilterDueDate] = useState<'overdue' | 'today' | 'week' | 'month' | null>(null)
   const [sortBy, setSortBy] = useState<'due-date' | 'title' | 'created'>('due-date')
+  const [viewMode, setViewMode] = useState<'list' | 'calendar' | 'timeline'>('list')
 
   useEffect(() => {
     if (authLoading && !user) { useAuthStore.getState().checkAuth(); return }
@@ -155,6 +160,38 @@ export default function MyTasksPage() {
     if (filterStatus && normalizeListName(c.listName || '') !== filterStatus) return false
     if (filterBoard && getCardBoardId(c) !== filterBoard) return false
     if (filterLabel && !c.labels.some(l => l.id === filterLabel)) return false
+    if (filterAssignee && !c.assignees.some(a => a.id === filterAssignee)) return false
+    
+    // Due date filter
+    if (filterDueDate && c.dueDate) {
+      const dueDate = new Date(c.dueDate)
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+      const tomorrow = new Date(today)
+      tomorrow.setDate(tomorrow.getDate() + 1)
+      const weekEnd = new Date(today)
+      weekEnd.setDate(weekEnd.getDate() + 7)
+      const monthEnd = new Date(today)
+      monthEnd.setMonth(monthEnd.getMonth() + 1)
+      
+      switch (filterDueDate) {
+        case 'overdue':
+          if (dueDate >= today) return false
+          break
+        case 'today':
+          if (dueDate < today || dueDate >= tomorrow) return false
+          break
+        case 'week':
+          if (dueDate < today || dueDate >= weekEnd) return false
+          break
+        case 'month':
+          if (dueDate < today || dueDate >= monthEnd) return false
+          break
+      }
+    } else if (filterDueDate) {
+      return false // Has due date filter but card has no due date
+    }
+    
     return true
   })
 
@@ -178,6 +215,11 @@ export default function MyTasksPage() {
   const allLabels = Array.from(new Set(sortedCards.flatMap(c => c.labels.map(l => l.id)))).map(
     id => sortedCards.flatMap(c => c.labels).find(l => l.id === id)
   ).filter(Boolean) as typeof cards[0]['labels']
+
+  // Get unique assignees from all cards
+  const allAssignees = Array.from(new Set(cards.flatMap(c => c.assignees.map(a => a.id)))).map(
+    id => cards.flatMap(c => c.assignees).find(a => a.id === id)
+  ).filter(Boolean) as typeof cards[0]['assignees']
 
   const grouped = new Map<string, Card[]>()
   for (const c of sortedCards) {
@@ -210,7 +252,7 @@ export default function MyTasksPage() {
   const inProgressTasks = cards.filter(c => normalizeListName(c.listName || '') === 'in progress').length
   const overdueTasks = cards.filter(c => c.dueDate && new Date(c.dueDate) < new Date()).length
 
-  const hasActiveFilters = filterStatus || filterBoard || filterLabel
+  const hasActiveFilters = filterStatus || filterBoard || filterLabel || filterAssignee || filterDueDate
 
   if (authLoading || !user) {
     return (
@@ -239,7 +281,7 @@ export default function MyTasksPage() {
         </button>
       </header>
 
-      <main className="max-w-5xl mx-auto p-4 lg:p-8">
+      <main className="w-full p-4 lg:p-8">
         {loading ? (
           <div className="flex items-center justify-center h-64">
             <div className="flex items-center gap-2 text-gray-400">
@@ -256,6 +298,39 @@ export default function MyTasksPage() {
           </div>
         ) : (
           <div className="space-y-6">
+            {/* View Toggle */}
+            <div className="flex items-center gap-2 justify-between">
+              <div className="flex gap-2">
+                {[
+                  { mode: 'list', label: 'List', icon: '≡' },
+                  { mode: 'timeline', label: 'Timeline', icon: '→' },
+                  { mode: 'calendar', label: 'Calendar', icon: '◻' },
+                ].map(({ mode, label, icon }) => (
+                  <button
+                    key={mode}
+                    onClick={() => setViewMode(mode as 'list' | 'timeline' | 'calendar')}
+                    className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      viewMode === mode
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+                    }`}
+                  >
+                    <span>{icon}</span>
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Calendar View */}
+            {viewMode === 'calendar' && <CalendarView cards={sortedCards} />}
+
+            {/* Timeline View */}
+            {viewMode === 'timeline' && <TimelineView cards={sortedCards} />}
+
+            {/* List View */}
+            {viewMode === 'list' && (
+              <>
             {/* Filter Bar */}
             <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
               <div className="flex flex-col gap-4">
@@ -263,19 +338,21 @@ export default function MyTasksPage() {
                   <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Filters & Sort</h3>
                   {hasActiveFilters && (
                     <button
-                      onClick={() => {
-                        setFilterStatus(null)
-                        setFilterBoard(null)
-                        setFilterLabel(null)
-                      }}
-                      className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium"
-                    >
-                      Clear filters
-                    </button>
+                       onClick={() => {
+                         setFilterStatus(null)
+                         setFilterBoard(null)
+                         setFilterLabel(null)
+                         setFilterAssignee(null)
+                         setFilterDueDate(null)
+                       }}
+                       className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium"
+                     >
+                       Clear filters
+                     </button>
                   )}
                 </div>
                 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                   {/* Status Filter */}
                   <div>
                     <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">Status</label>
@@ -321,6 +398,37 @@ export default function MyTasksPage() {
                     </select>
                   </div>
 
+                  {/* Assignee Filter */}
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">Assignee</label>
+                    <select
+                      value={filterAssignee || ''}
+                      onChange={(e) => setFilterAssignee(e.target.value || null)}
+                      className="w-full px-3 py-1.5 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="">All Assignees</option>
+                      {allAssignees.map((assignee) => (
+                        <option key={assignee.id} value={assignee.id}>{assignee.name}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Due Date Filter */}
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">Due Date</label>
+                    <select
+                      value={filterDueDate || ''}
+                      onChange={(e) => setFilterDueDate((e.target.value as any) || null)}
+                      className="w-full px-3 py-1.5 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="">Any Date</option>
+                      <option value="overdue">Overdue</option>
+                      <option value="today">Today</option>
+                      <option value="week">This Week</option>
+                      <option value="month">This Month</option>
+                    </select>
+                  </div>
+
                   {/* Sort */}
                   <div>
                     <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">Sort By</label>
@@ -356,10 +464,22 @@ export default function MyTasksPage() {
                         <button onClick={() => setFilterLabel(null)} className="ml-1 text-green-500 hover:text-green-600 dark:text-green-400 dark:hover:text-green-300">×</button>
                       </div>
                     )}
-                  </div>
-                )}
-              </div>
-            </div>
+                    {filterAssignee && (
+                      <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-lg bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-300 text-xs font-medium">
+                        <span>Assignee: {allAssignees.find(a => a.id === filterAssignee)?.name}</span>
+                        <button onClick={() => setFilterAssignee(null)} className="ml-1 text-orange-500 hover:text-orange-600 dark:text-orange-400 dark:hover:text-orange-300">×</button>
+                      </div>
+                    )}
+                    {filterDueDate && (
+                      <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-lg bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 text-xs font-medium">
+                        <span>Due: {filterDueDate === 'overdue' ? 'Overdue' : filterDueDate === 'today' ? 'Today' : filterDueDate === 'week' ? 'This Week' : 'This Month'}</span>
+                        <button onClick={() => setFilterDueDate(null)} className="ml-1 text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300">×</button>
+                      </div>
+                    )}
+                   </div>
+                 )}
+               </div>
+             </div>
 
             {/* Results Count */}
             <div className="text-sm text-gray-600 dark:text-gray-400">
@@ -531,6 +651,8 @@ export default function MyTasksPage() {
                   })}
                 </div>
               </div>
+            )}
+            </>
             )}
           </div>
         )}

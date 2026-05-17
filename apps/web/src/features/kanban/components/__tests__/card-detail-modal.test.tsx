@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { CardDetailModal } from '../card-detail-modal'
-import type { Card, BoardMember } from '../../types/kanban'
+import type { Card, BoardMember, Activity } from '../../types/kanban'
 
 function makeCard(overrides?: Partial<Card>): Card {
   return {
@@ -100,7 +100,7 @@ describe('CardDetailModal', () => {
   })
 
   it('renders assignees', () => {
-    const card = makeCard({ assignees: [{ id: 'u2', name: 'Jane', email: 'j@t.com', avatar: 'JD' }] })
+    const card = makeCard({ assignees: [{ id: 'u2', name: 'Jane', email: 'j@t.com', role: 'MEMBER', avatar: 'JD' }] })
     render(<CardDetailModal {...baseProps} card={card} />)
     expect(screen.getByText('Jane')).toBeInTheDocument()
   })
@@ -188,7 +188,7 @@ describe('CardDetailModal', () => {
     })
 
     it('shows card creation in history', () => {
-      const activities = [
+      const activities: Activity[] = [
         { id: 'a1', boardId: 'b1', userId: 'u1', userName: 'John', action: 'created', entityType: 'card', entityId: 'c1', createdAt: '2026-01-01T00:00:00Z' },
       ]
       render(<CardDetailModal {...baseProps} activities={activities} boardLists={lists} />)
@@ -196,7 +196,7 @@ describe('CardDetailModal', () => {
     })
 
     it('shows card movement with list ids as fallback', () => {
-      const activities = [
+      const activities: Activity[] = [
         { id: 'a1', boardId: 'b1', userId: 'u1', userName: 'John', action: 'moved', entityType: 'card', entityId: 'c1', fromListId: 'l1', toListId: 'l2', fromListTitle: 'Backlog', toListTitle: 'In Progress', createdAt: '2026-01-01T00:00:00Z' },
       ]
       render(<CardDetailModal {...baseProps} activities={activities} boardLists={lists} />)
@@ -206,7 +206,7 @@ describe('CardDetailModal', () => {
     })
 
     it('shows card update in history', () => {
-      const activities = [
+      const activities: Activity[] = [
         { id: 'a1', boardId: 'b1', userId: 'u1', userName: 'John', action: 'updated', entityType: 'card', entityId: 'c1', createdAt: '2026-01-01T00:00:00Z' },
       ]
       render(<CardDetailModal {...baseProps} activities={activities} boardLists={lists} />)

@@ -9,6 +9,7 @@ const base = {
   onToggleDarkMode: vi.fn(), onToggleMenu: vi.fn(), onToggleRight: vi.fn(),
   showRight: false, searchQuery: '', onSearchChange: vi.fn(),
   onOpenSettings: vi.fn(), onMarkRead: vi.fn(), showArchived: false, onToggleArchived: vi.fn(),
+  onGoBack: vi.fn(),
 }
 
 describe('KanbanHeader', () => {
@@ -18,12 +19,12 @@ describe('KanbanHeader', () => {
   })
 
   it('renders member avatar', () => {
-    render(<KanbanHeader {...base} members={[{ id: 'u1', name: 'John', email: 'j@t.com', avatar: 'JD' }]} />)
+    render(<KanbanHeader {...base} members={[{ id: 'u1', name: 'John', email: 'j@t.com', role: 'MEMBER', avatar: 'JD' }]} />)
     expect(screen.getByText('JD')).toBeInTheDocument()
   })
 
   it('shows +N for extra members', () => {
-    render(<KanbanHeader {...base} members={Array.from({ length: 5 }, (_, i) => ({ id: `u${i}`, name: `U${i}`, email: `${i}@t.com`, avatar: `U${i}` }))} />)
+    render(<KanbanHeader {...base} members={Array.from({ length: 5 }, (_, i) => ({ id: `u${i}`, name: `U${i}`, email: `${i}@t.com`, role: 'MEMBER' as const, avatar: `U${i}` }))} />)
     expect(screen.getByText('+2')).toBeInTheDocument()
   })
 

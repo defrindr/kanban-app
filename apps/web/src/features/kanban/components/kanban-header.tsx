@@ -18,6 +18,8 @@ interface Props {
   showArchived: boolean
   onToggleArchived: () => void
   onGoBack: () => void
+  viewMode?: 'list' | 'calendar' | 'timeline'
+  onViewModeChange?: (mode: 'list' | 'calendar' | 'timeline') => void
 }
 
 export function KanbanHeader({
@@ -37,6 +39,8 @@ export function KanbanHeader({
   showArchived,
   onToggleArchived,
   onGoBack,
+  viewMode = 'list',
+  onViewModeChange,
 }: Props) {
   const [showNotifs, setShowNotifs] = useState(false)
   const unreadCount = notifications.filter((n) => !n.read).length
@@ -80,6 +84,32 @@ export function KanbanHeader({
             </button>
           )}
         </div>
+
+        {onViewModeChange && (
+          <div className="hidden sm:flex items-center gap-1 ml-1 bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
+            <button
+              onClick={() => onViewModeChange('list')}
+              className={`p-1.5 rounded transition-colors ${viewMode === 'list' ? 'bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'}`}
+              title="List view"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" /></svg>
+            </button>
+            <button
+              onClick={() => onViewModeChange('calendar')}
+              className={`p-1.5 rounded transition-colors ${viewMode === 'calendar' ? 'bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'}`}
+              title="Calendar view"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+            </button>
+            <button
+              onClick={() => onViewModeChange('timeline')}
+              className={`p-1.5 rounded transition-colors ${viewMode === 'timeline' ? 'bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'}`}
+              title="Timeline view"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+            </button>
+          </div>
+        )}
 
         <button onClick={onToggleArchived} className={`p-2 rounded-lg transition-colors ${showArchived ? 'bg-amber-100 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800'}`} title={showArchived ? 'Hide archived' : 'Show archived'}>
           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

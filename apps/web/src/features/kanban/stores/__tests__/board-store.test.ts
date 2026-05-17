@@ -34,7 +34,7 @@ function makeComment(overrides?: Partial<Comment>): Comment {
 }
 
 function makeMember(overrides?: Partial<BoardMember>): BoardMember {
-  return { id: 'u2', name: 'Jane', email: 'jane@test.com', avatar: '', ...overrides }
+  return { id: 'u2', name: 'Jane', email: 'jane@test.com', role: 'MEMBER', avatar: '', ...overrides }
 }
 
 function makeActivity(overrides?: Partial<Activity>): Activity {

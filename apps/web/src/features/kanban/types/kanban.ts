@@ -5,7 +5,7 @@ export const BoardMemberSchema = z.object({
   name: z.string(),
   email: z.string(),
   avatar: z.string().optional(),
-  role: z.enum(['ADMIN', 'MEMBER']).optional().default('MEMBER'),
+  role: z.enum(['ADMIN', 'MEMBER']).default('MEMBER'),
 })
 
 export const LabelSchema = z.object({

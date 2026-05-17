@@ -214,7 +214,7 @@ describe('mock-api', () => {
   describe('assignee operations', () => {
     it('adds card assignee', async () => {
       mockApiClient.mockResolvedValueOnce({ ok: true, data: {} })
-      const member: BoardMember = { id: 'u2', name: 'Jane', email: 'j@t.com', avatar: '' }
+      const member: BoardMember = { id: 'u2', name: 'Jane', email: 'j@t.com', role: 'MEMBER', avatar: '' }
       const result = await addCardAssignee('c1', member)
       expect(result.ok).toBe(true)
     })
@@ -232,7 +232,7 @@ describe('mock-api', () => {
         .mockResolvedValueOnce({ ok: true, data: {} })
         .mockResolvedValueOnce({ ok: true, data: BASE_BOARD })
         .mockResolvedValueOnce({ ok: true, data: [] })
-      const member: BoardMember = { id: 'u2', name: 'Jane', email: 'j@t.com', avatar: '' }
+      const member: BoardMember = { id: 'u2', name: 'Jane', email: 'j@t.com', role: 'MEMBER', avatar: '' }
       const result = await addBoardMember('b1', member)
       expect(result.ok).toBe(true)
     })

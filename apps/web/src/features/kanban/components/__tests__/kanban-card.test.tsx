@@ -96,7 +96,7 @@ describe('KanbanCard', () => {
   })
 
   it('renders assignee avatars', () => {
-    const card = makeCard({ assignees: [{ id: 'u2', name: 'Jane', email: 'j@t.com', avatar: 'JD' }] })
+    const card = makeCard({ assignees: [{ id: 'u2', name: 'Jane', email: 'j@t.com', role: 'MEMBER', avatar: 'JD' }] })
     render(<KanbanCard card={card} onClick={vi.fn()} />)
     expect(screen.getByText('JD')).toBeInTheDocument()
   })
