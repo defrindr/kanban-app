@@ -155,6 +155,8 @@ export async function createBoard(name: string, description?: string, template?:
       ? ['Backlog', 'To Do', 'In Progress', 'Review', 'Done']
       : template === 'Sprint Board'
       ? ['Backlog', 'To Do', 'In Progress', 'Review', 'Done']
+      : template === 'Project Tracker'
+      ? ['Backlog', 'To Do', 'In Progress', 'Testing', 'Done']
       : template === 'Bug Tracker'
       ? ['Reported', 'Triaged', 'In Progress', 'Fixed', 'Verified']
       : []
