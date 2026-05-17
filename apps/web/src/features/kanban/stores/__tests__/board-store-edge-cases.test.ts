@@ -120,16 +120,14 @@ describe('BoardStore edge cases', () => {
 
   it('addComment only adds to correct card', () => {
     useBoardStore.getState().setCurrentBoard(makeBoard());
-    useBoardStore
-      .getState()
-      .addComment('c1', {
-        id: 'cm1',
-        cardId: 'c1',
-        userId: 'u1',
-        userName: 'John',
-        content: 'Hello',
-        createdAt: '2026-01-01T00:00:00Z',
-      });
+    useBoardStore.getState().addComment('c1', {
+      id: 'cm1',
+      cardId: 'c1',
+      userId: 'u1',
+      userName: 'John',
+      content: 'Hello',
+      createdAt: '2026-01-01T00:00:00Z',
+    });
     const c1 = useBoardStore
       .getState()
       .currentBoard?.lists.find((l) => l.id === 'l1')
